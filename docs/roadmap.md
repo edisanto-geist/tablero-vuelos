@@ -16,12 +16,12 @@ Pedile a Claude Code que vaya fase por fase. Primer prompt sugerido al final.
 - [x] Cálculo de tiempo al punto más cercano ("ETA")
 - [x] Timeout de 2 min sin aviones → negro y silencio
 - [x] Manejo de errores / reintentos / rate limits (enfriamientos, cupos diarios, fallback)
-- [ ] Prueba en vivo en el celu con `web/diag.html` (CORS y cobertura reales sin verificar)
+- [x] Prueba en vivo en el celu con `web/diag.html` (25/11/2026: vía Cloudflare solo responde adsb.lol → hace falta Termux)
 
 ## Fase 3 — El celu
-- [ ] Guía con Fully Kiosk Browser (encender pantalla, autoplay, arranque al bootear)
+- [x] Guía con Fully Kiosk Browser + Termux (`docs/instalacion.md`)
 - [ ] Alternativa con Tasker (perfil exportado en `tasker/`)
-- [~] Opcional: Termux como proxy local si hay CORS (`termux/proxy.py` hecho; falta guía de arranque en el celu)
+- [x] Termux como proxy local (`termux/proxy.py` + arranque con Termux:Boot, en `docs/instalacion.md`)
 - [ ] `docs/bateria-y-alimentacion.md`
 
 ## Fase 4 — Pulido
