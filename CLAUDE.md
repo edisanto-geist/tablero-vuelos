@@ -105,7 +105,7 @@ Todo lo configurable va en un único objeto `CONFIG` al principio del JS (o `con
 ## Cómo trabajar
 
 - Antes de un cambio grande, proponé el plan en 3–5 bullets.
-- Probá la lógica de filtrado/distancia con datos mock (`web/mock.json`) para no depender
+- Probá la lógica de filtrado/distancia con datos mock (`web/js/datos-demo.js`; no se usa JSON porque `fetch` no anda en `file://`) para no depender
   de que pasen aviones reales.
 - Agregá un modo demo (`?demo=1`) que muestre aviones falsos para probar el look sin API.
 - Commits chicos y descriptivos en español.

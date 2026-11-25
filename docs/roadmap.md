@@ -3,10 +3,10 @@
 Pedile a Claude Code que vaya fase por fase. Primer prompt sugerido al final.
 
 ## Fase 1 — Display en modo demo
-- [ ] `web/index.html` con el tablero (negro, amarillo/blanco, monoespaciada grande, efecto split-flap)
-- [ ] Modo `?demo=1` con aviones falsos y scroll automático cuando hay más de los que entran
-- [ ] Pantalla negra total en reposo
-- [ ] `web/beep.mp3` de 0.5 s generado por script + reproducción con Web Audio
+- [x] `web/index.html` con el tablero (negro, amarillo/blanco, monoespaciada grande, efecto split-flap)
+- [x] Modo `?demo=1` con aviones falsos y scroll automático cuando hay más de los que entran
+- [x] Pantalla negra total en reposo
+- [x] `web/beep.mp3` de 0.5 s generado por script + reproducción con Web Audio
 
 ## Fase 2 — Datos reales
 - [ ] Consulta a OpenSky con bounding box alrededor de Ibarlucea

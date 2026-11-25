@@ -1,0 +1,27 @@
+// Configuración del tablero. Para cambios propios usá config.local.js (no se sube al repo):
+//   Object.assign(CONFIG, { LAT: -32.85, LON: -60.78 });
+window.CONFIG = {
+  LAT: -32.8500, LON: -60.7833, NOMBRE_LUGAR: 'IBARLUCEA',
+  AEROPUERTO_LOCAL: 'ROS',
+  RADIO_KM: 30,
+  INTERVALO_CONSULTA_S: 15,
+  TIMEOUT_SIN_AVIONES_S: 120,
+  VOLUMEN: 0.8,
+  HORARIO_SILENCIO: { desde: '23:00', hasta: '07:00' },
+  BEEP_MIN_ENTRE_S: 10,
+  REBEEP_VUELO_S: 300,
+  FILAS_POR_PAGINA: 2,
+  SEGUNDOS_POR_PAGINA: 8,
+  UNIDAD_ALTITUD: 'm',
+  ORIENTACION_PANTALLA_DEG: 0,
+  DIST_ENCIMA_KM: 2,
+  INCLUIR_EN_TIERRA: false,
+  ANIMAR: true,
+  PROVEEDOR: 'opensky',
+  OPENSKY_USUARIO: '', OPENSKY_CLAVE: '',
+  RUTA_BEEP: 'beep.mp3',
+  RUTA_LOGOS: 'logos/', USAR_LOGOS_PNG: false,
+  APAGAR_PANTALLA_FISICA: false,
+  DEMO: { INTERVALO_CONSULTA_S: 2, TIMEOUT_SIN_AVIONES_S: 20, REBEEP_VUELO_S: 60,
+          ACELERACION: 4, CICLO_S: 180, T_INICIAL_S: 0 }
+};

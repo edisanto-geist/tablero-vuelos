@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>Tests de lógica</title>
+<style>body{background:#000;color:#eee;font:16px monospace;padding:16px}.ok{color:#6f6}.falla{color:#f66}h1{font-size:18px}</style>
+</head><body>
+<h1>Tests de lógica (los mismos que scripts/test_logica.js)</h1>
+<div id="salida"></div>
+<script src="js/config.js"></script>
+<script src="js/geo.js"></script>
+<script src="js/aerolineas.js"></script>
+<script src="js/datos.js"></script>
+<script src="js/formato.js"></script>
+<script src="js/tests.js"></script>
+<script>
+  var res = TestsLogica.correr(Geo, Aerolineas, Datos, Formato, CONFIG);
+  var html = '', f = 0;
+  res.forEach(function (r) {
+    if (!r.ok) f++;
+    html += '<div class="' + (r.ok ? 'ok' : 'falla') + '">' + (r.ok ? 'OK    ' : 'FALLA ') + r.nombre +
+      (r.ok ? '' : ' -> ' + r.error) + '</div>';
+  });
+  html += '<h1 class="' + (f ? 'falla' : 'ok') + '">' + (f ? f + ' FALLARON' : 'TODO OK (' + res.length + ')') + '</h1>';
+  document.getElementById('salida').innerHTML = html;
+</script>
+</body></html>

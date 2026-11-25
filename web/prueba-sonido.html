@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRUEBA DE SONIDO</title>
+<style>
+  body { background:#000; color:#FFC81E; margin:0; padding:3vh 4vw;
+         font-family:"Droid Sans Mono","Noto Sans Mono","Roboto Mono","DejaVu Sans Mono","Courier New",monospace; font-weight:700; }
+  h1 { font-size:5vh; margin:0 0 2vh; color:#9A9A9A; }
+  button { font:inherit; font-size:5vh; padding:1vh 3vw; margin:0 2vw 2vh 0; background:#141414; color:#F2F2F2; border:2px solid #FFC81E; border-radius:6px; }
+  .fila { font-size:4vh; margin:0.6vh 0; }
+  .fila b { color:#F2F2F2; }
+  #log { font-size:3vh; color:#9A9A9A; white-space:pre-wrap; margin-top:2vh; }
+</style>
+</head>
+<body>
+<h1>PRUEBA DE SONIDO</h1>
+<button id="btnDesbloquear" type="button">DESBLOQUEAR</button>
+<button id="btnBeep" type="button">BEEP</button>
+<div class="fila">DESBLOQUEADO: <b id="estado">---</b></div>
+<div class="fila">ULTIMO RESULTADO: <b id="resultado">---</b></div>
+<div class="fila">VIA FORZADA: <b id="forzada">NINGUNA</b> <span style="color:#9A9A9A">(?forzar=webaudio|audio|osc)</span></div>
+<div id="log"></div>
+
+<script src="js/config.js"></script>
+<script>
+  // Si todavia no existe js/config.js, usamos este CONFIG de emergencia.
+  if (!window.CONFIG) {
+    window.CONFIG = { VOLUMEN: 0.8, HORARIO_SILENCIO: { desde: '23:00', hasta: '07:00' }, RUTA_BEEP: 'beep.mp3' };
+  }
+</script>
+<script src="js/beep-data.js"></script>
+<script src="js/sonido.js"></script>
+<script>
+(function () {
+  var params = new URLSearchParams(window.location.search);
+  var forzar = params.get('forzar');
+  if (forzar !== 'webaudio' && forzar !== 'audio' && forzar !== 'osc') forzar = null;
+  // Prueba siempre con volumen audible y sin horario de silencio, para no
+  // confundir 'silencio' con un problema de sonido (salvo ?silencio=1).
+  var cfg = Object.assign({}, window.CONFIG, { FORZAR: forzar });
+  if (params.get('silencio') !== '1') { cfg.HORARIO_SILENCIO = null; if (!(cfg.VOLUMEN > 0)) cfg.VOLUMEN = 0.8; }
+
+  var elEstado = document.getElementById('estado');
+  var elRes = document.getElementById('resultado');
+  var elLog = document.getElementById('log');
+  document.getElementById('forzada').textContent = forzar ? forzar.toUpperCase() : 'NINGUNA';
+  window.__resultados = [];
+  window.__errores = 0;
+
+  function log(t) {
+    elLog.textContent = new Date().toLocaleTimeString() + '  ' + t + '\n' + elLog.textContent;
+  }
+  function actualizarEstado() {
+    elEstado.textContent = window.Sonido && window.Sonido.estaDesbloqueado() ? 'SI' : 'NO';
+  }
+  window.addEventListener('error', function (e) { window.__errores++; log('ERROR: ' + e.message); });
+  window.addEventListener('unhandledrejection', function (e) { window.__errores++; log('RECHAZO SIN CAPTURAR: ' + e.reason); });
+
+  function hacerBeep(origen) {
+    window.Sonido.beep().then(function (r) {
+      window.__resultados.push(r);
+      elRes.textContent = r.toUpperCase();
+      document.title = 'RESULTADO: ' + r;
+      log(origen + ' -> ' + r);
+      actualizarEstado();
+    });
+  }
+
+  window.Sonido.init(cfg);
+  actualizarEstado();
+  log('init listo. Si el navegador bloquea el audio, tocá DESBLOQUEAR o BEEP.');
+
+  document.getElementById('btnDesbloquear').addEventListener('click', function () {
+    window.Sonido.desbloquear().then(function (ok) { log('desbloquear -> ' + ok); actualizarEstado(); });
+  });
+  document.getElementById('btnBeep').addEventListener('click', function () { hacerBeep('beep manual'); });
+
+  // Beep automatico al abrir: muestra si el navegador deja sonar sin tocar nada.
+  setTimeout(function () { hacerBeep('beep automatico'); }, 500);
+  setInterval(actualizarEstado, 1000);
+})();
+</script>
+</body>
+</html>
