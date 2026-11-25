@@ -117,7 +117,9 @@
     } else if (res.some(function (x) { return x.ok; })) {
       txt = '<span class="med">Hay proveedores que responden pero ninguno devolvió aviones en ' + CONFIG.RADIO_KM + ' km. Probá de nuevo o con ?radio=400.</span>';
     } else {
-      txt = '<span class="mal">Ningún proveedor respondió. Revisá el WiFi' + (Red.proxyBase() ? ' y que el proxy esté corriendo.' : '.') + '</span>';
+      txt = '<span class="mal">Ningún proveedor respondió. ' + (Red.proxyBase()
+        ? 'Revisá que el proxy (' + Red.proxyBase() + ') esté funcionando.'
+        : (todosBloq ? 'Si adsbdb (abajo) respondió, internet anda (adsbdb respondió): y los proveedores bloquean al navegador por CORS: hace falta un proxy. Si no, revisá el WiFi.' : 'Revisá el WiFi.')) + '</span>';
     }
     r.innerHTML = txt;
   }

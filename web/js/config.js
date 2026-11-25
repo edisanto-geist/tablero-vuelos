@@ -32,7 +32,8 @@ window.CONFIG = {
   },
   TIMEOUT_RED_S: 8,
   MAX_EDAD_POSICION_S: 60,           // posiciones más viejas se descartan (fantasmas)
-  PROXY: 'auto',                     // 'auto' | '' (directo) | 'http://127.0.0.1:8080/api/'
+  PROXY: 'auto',                     // 'auto' (GitHub Pages → PROXY_NUBE; 127.0.0.1 → Termux; si no, directo) | '' | 'http://127.0.0.1:8080/api/'
+  PROXY_NUBE: 'https://tablero-vuelos-proxy.edisanto.workers.dev/api/', // cloudflare/worker.js
   OPENSKY_CLIENT_ID: '', OPENSKY_CLIENT_SECRET: '',
   ADSBLOL_KEY: '',
   ENRIQUECER: true,

@@ -52,6 +52,11 @@
       if (p === 'auto') {
         if (typeof location !== 'undefined' && location && /^http/.test(location.protocol || '') &&
             (location.hostname === '127.0.0.1' || location.hostname === 'localhost')) return '/api/';
+        // Publicado en GitHub Pages: las APIs de vuelos no mandan CORS, así que se pasa por el Worker de Cloudflare.
+        if (typeof location !== 'undefined' && location && /\.github\.io$/.test(location.hostname || '') && cfg.PROXY_NUBE) {
+          var n = String(cfg.PROXY_NUBE);
+          return n.charAt(n.length - 1) === '/' ? n : n + '/';
+        }
         return '';
       }
       if (!p) return '';
