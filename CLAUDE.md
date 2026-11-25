@@ -12,8 +12,13 @@ Convertir un **celular Android viejo** en una decoración tipo **tablero de aero
   **Ibarlucea, Santa Fe, Argentina** (lat `-32.8500`, lon `-60.7833` — verificar).
 - Suena un **beep corto (0.5 s)** tipo tablero de aeropuerto al detectar actividad.
 - Muestra un panel **fondo negro, texto amarillo/blanco grande, tipografía monoespaciada**
-  con: aerolínea, número de vuelo, tipo de avión, altitud y tiempo estimado (ETA / tiempo al
-  punto más cercano).
+  con: **logo de la aerolínea**, aerolínea, número de vuelo, tipo de avión, altitud,
+  tiempo estimado (ETA / tiempo al punto más cercano) y **origen → destino en código IATA**
+  (ej. `AEP → MDZ`).
+- Uso real: Esteban sale al patio a ver el avión pasar, o lo ve en el cielo y mira el celu.
+  Por eso el tablero también tiene que decir **hacia dónde mirar**: dirección/rumbo relativo
+  a Ibarlucea (ej. `AL NORTE · 12 KM`, flecha) y si se acerca o se aleja. Lectura a 2–3 m de
+  distancia: letras muy grandes, poca info por fila.
 - Si hay varios aviones, **scroll automático** tipo tablero de arribos/partidas.
 - Si pasan **2 minutos** (configurable) sin aviones en el radio → vuelve a negro y silencio.
 - Corre **24/7**, sin bloqueo de pantalla y sin intervención manual.
@@ -49,6 +54,13 @@ Flujo base:
   - Aerolínea → derivar del prefijo ICAO del callsign (ARG = Aerolíneas Argentinas,
     JAT = JetSMART, FBZ = Flybondi, LAN/LPE = LATAM, GLO = GOL, AZU = Azul, etc.). Tabla local en JS.
   - Tipo de avión → base de aircraft de OpenSky (`icao24` → typecode) o adsbdb.com; cachear.
+- Origen/destino IATA → OpenSky no lo da de forma confiable. Usar la API gratuita de
+  adsbdb.com (callsign → ruta con códigos IATA/ICAO de aeropuertos). Cachear por callsign.
+  Si no hay ruta, mostrar `--- → ---` sin romper el layout.
+- Logo → buscar por código IATA/ICAO de la aerolínea. Preferir **logos guardados localmente**
+  en `web/logos/` para las aerolíneas que pasan por Rosario (ARG, JAT, FBZ, LAN/LPE, GLO, AZU,
+  AAL, CMP, AVA…), con fallback a un ícono genérico de avión. Verificar licencia de cualquier
+  fuente online antes de usarla.
 - ETA: no existe ETA real gratis. Calcular **tiempo hasta el punto de máxima aproximación**
   con velocidad y rumbo, y mostrarlo como "ETA" o "SOBRE IBARLUCEA EN 3 MIN".
 - Alternativa si OpenSky falla o se queda corto: adsb.lol / airplanes.live (API gratuitas

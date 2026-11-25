@@ -11,7 +11,8 @@ Pedile a Claude Code que vaya fase por fase. Primer prompt sugerido al final.
 ## Fase 2 — Datos reales
 - [ ] Consulta a OpenSky con bounding box alrededor de Ibarlucea
 - [ ] Filtro por distancia (haversine) ≤ 30 km
-- [ ] Aerolínea por prefijo de callsign, tipo de avión por `icao24` (con caché)
+- [ ] Aerolínea + logo por prefijo de callsign, tipo de avión por `icao24`, origen→destino IATA por adsbdb (con caché)
+- [ ] Dirección y distancia desde Ibarlucea ("AL NORTE · 12 KM") para ubicarlo en el cielo
 - [ ] Cálculo de tiempo al punto más cercano ("ETA")
 - [ ] Timeout de 2 min sin aviones → negro y silencio
 - [ ] Manejo de errores / reintentos / rate limits
