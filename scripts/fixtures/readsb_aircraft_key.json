@@ -1,0 +1,13 @@
+{"aircraft":[
+ {"hex":"e06541","type":"adsb_icao","flight":"ARG1541 ","r":"LV-ABC","t":"E190","alt_baro":3500,"alt_geom":3725,"gs":160,"track":18.5,"baro_rate":-832,"squawk":"4521","category":"A3","lat":-32.95,"lon":-60.80,"nic":8,"seen_pos":0.8,"seen":0.3,"rssi":-18.4,"dst":5.4,"dir":190.1},
+ {"hex":"e0a1b2","type":"adsb_icao","flight":"FBZ5121 ","r":"LV-KJE","t":"B738","alt_baro":"ground","gs":12.3,"track":200.4,"category":"A3","lat":-32.903,"lon":-60.7845,"seen_pos":2.1,"seen":1.0},
+ {"hex":"e48a21","type":"adsb_icao","flight":"GLO7461 ","r":"PR-XMA","t":"B38M","alt_baro":36000,"alt_geom":36775,"gs":452,"track":23.4,"baro_rate":0,"lat":-33.02,"lon":-60.92,"seen_pos":1.4,"seen":0.6},
+ {"hex":"e03420","type":"adsb_icao","flight":"JES3420 ","alt_baro":11000,"gs":250,"track":330,"baro_rate":1792,"lat":-32.78,"lon":-60.70,"seen_pos":3.0,"seen":2.2},
+ {"hex":"e0f1a7","type":"mode_s","flight":"LVFVZ   ","r":"LV-FVZ","t":"C150","alt_baro":2100,"gs":95,"track":0,"lat":-32.80,"lon":-60.85,"seen_pos":4.5,"seen":1.1},
+ {"hex":"e0c3d4","type":"mlat","r":"LV-GHI","t":"PA34","alt_baro":1500,"gs":120,"track":90,"geom_rate":-256,"lat":-32.88,"lon":-60.74,"seen_pos":6.0,"seen":3.0},
+ {"hex":"~2a1f00","type":"tisb_other","alt_baro":4500,"gs":180,"track":270,"lat":-32.70,"lon":-60.65,"seen_pos":1.0,"seen":1.0},
+ {"hex":"e0b9c8","type":"adsb_icao","flight":"AZP401  ","t":"E190","alt_geom":12000,"gs":300,"track":135,"lat":-32.75,"lon":-60.95,"seen_pos":2.0,"seen":0.5},
+ {"hex":"e0d4e5","type":"adsb_icao","flight":"ARG1234 ","t":"A332","alt_baro":38000,"gs":480,"track":10,"seen":0.4},
+ {"hex":"e0e5f6","type":"adsb_icao","flight":"ARG1777 ","t":"B738","alt_baro":24000,"gs":400,"track":45,"lat":-32.90,"lon":-60.78,"seen_pos":95.0,"seen":90.0},
+ {"hex":"e09f10","type":"adsb_icao","flight":"LAN1405 ","t":"A320","alt_baro":33000,"gs":440,"track":300,"baro_rate":64,"lat":-33.20,"lon":-60.50,"seen_pos":0.5,"seen":0.2}
+],"msg":"No error","now":1764079200,"total":11,"ctime":1764079199.5,"ptime":4}

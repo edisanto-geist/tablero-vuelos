@@ -33,6 +33,26 @@ Atajos de URL (se combinan con `&`):
 Los datos falsos viven en `web/js/datos-demo.js` (reemplaza al `mock.json` que mencionaba `CLAUDE.md`:
 `fetch` no funciona desde `file://`). Los tests de la lógica: `node scripts/test_logica.js` o abrir `web/test.html`.
 
-## Datos
+## Datos reales
 
-Vuelos en tiempo real vía [OpenSky Network](https://opensky-network.org/) (gratis).
+Sin `?demo=1` el tablero consulta vuelos reales. `PROVEEDORES` (en `web/js/config.js`) define el orden y el
+fallback automático: **airplanes.live** (principal, sin cupo diario), **adsb.fi**, **adsb.lol** (500 consultas por día
+sin key) y **OpenSky** (último recurso, cupo de créditos). Rutas (`AEP → ROS`) y tipo de avión salen de **adsbdb**,
+con caché en el celu para no repetir consultas.
+
+- **`?radio=200`** agranda el radio para ver que llegan datos aunque no pase nada a 30 km
+  (`index.html?radio=200&debug=1`). No lo dejes así 24/7. Otros atajos: `proveedor=adsbfi` (uno fijo, sin fallback),
+  `proxy=1` / `proxy=0`.
+- **`web/diag.html`** prueba cada proveedor y adsbdb desde *este* navegador y dice cuál usar (o si hace falta el proxy).
+  Abrilo desde el mismo navegador o Fully que va a usar el tablero. Cada corrida gasta 1 consulta de adsb.lol y 1 de OpenSky.
+- **Proxy de Termux (opcional):** `python3 termux/proxy.py` sirve `web/` en `http://127.0.0.1:8080/` y reenvía `/api/...`
+  con CORS. Hace falta si `diag.html` marca BLOQUEADO desde `file://`. Con `--fixtures scripts/fixtures` no sale a internet
+  (para pruebas); `--falla airplaneslive=429` y `--demora-adsbdb-ms 1500` simulan problemas.
+- **Créditos y cupos:** consulta cada 20 s en reposo y 10 s con aviones (60 s entre 01:00 y 05:30), unas 5000 por día: usá WiFi.
+  adsb.lol sin key: 500/día; OpenSky anónimo: unos 400 créditos/día. OpenSky con cuenta solo conviene vía el proxy
+  (credenciales en variables de entorno o `termux/credenciales.json`, que no se sube al repo). Ajustes anidados en
+  `config.local.js`: `CONFIG.LIMITES.opensky = {REPOSO_S:60, ACTIVO_S:20, CUPO_DIARIO:4000};` (no uses `Object.assign` con `LIMITES`).
+
+Datos de vuelos de [airplanes.live](https://airplanes.live), [adsb.fi](https://adsb.fi) (uso personal no comercial; hay que
+citarlo), [adsb.lol](https://adsb.lol) (licencia ODbL) y [OpenSky Network](https://opensky-network.org/).
+Rutas y tipos de aeronave de [adsbdb](https://www.adsbdb.com/): son para uso personal, no se republican ni se commitean datos reales.

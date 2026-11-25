@@ -15,6 +15,7 @@
       var m = /^([A-Z]{3})([0-9][A-Z0-9]*)$/.exec(callsign);
       var aerolinea = m ? Aerolineas.buscar(m[1]) : null;
       var vuelo = callsign;
+      if (callsign === '') vuelo = crudo.matricula || String(crudo.icao24 || '').toUpperCase();
       if (aerolinea) {
         var numero = m[2].replace(/^0+(?=.)/, '');
         vuelo = aerolinea.iata + ' ' + numero;
@@ -24,7 +25,7 @@
       var rumbo = num(crudo.rumboDeg);
       var v = {
         id: String(crudo.icao24 || '').toLowerCase(),
-        callsign: callsign, vuelo: vuelo, aerolinea: aerolinea,
+        callsign: callsign, vuelo: vuelo, aerolinea: aerolinea, matricula: crudo.matricula || null,
         tipo: crudo.tipo || null, origen: crudo.origen || null, destino: crudo.destino || null,
         lat: lat, lon: lon,
         altitudM: num(crudo.altitudBaroM), velocidadKmh: velKmh, rumboDeg: rumbo,

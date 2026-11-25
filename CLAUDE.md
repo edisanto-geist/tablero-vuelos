@@ -37,7 +37,7 @@ docs/       → guías de instalación en el celu y de alimentación/batería
 ```
 
 Flujo base:
-1. `web/index.html` consulta la API cada N segundos (default 15 s; respetar rate limits).
+1. `web/index.html` consulta la API cada N segundos (reposo 20 s, activo 10 s; respetar rate limits).
 2. Filtra aviones por distancia (haversine) ≤ `RADIO_KM`.
 3. Si hay ≥1 → muestra tablero + beep (solo en la transición 0 → ≥1, o cuando entra un vuelo nuevo).
 4. Si 0 durante `TIMEOUT_SIN_AVIONES` → pantalla negra total (`#000`, sin nada encendido).
@@ -46,28 +46,28 @@ Flujo base:
 
 ## Fuentes de datos
 
-- **Principal: OpenSky Network REST API** (`/api/states/all` con bounding box `lamin/lomin/lamax/lomax`).
-  Gratis, anónimo con límites de créditos; con cuenta gratuita hay más margen. Usar bounding
-  box chico (≈ ±0.3° alrededor de Ibarlucea) para gastar menos créditos.
-- OpenSky da callsign, posición, altitud, velocidad, rumbo, `icao24`. **No** da aerolínea ni
-  tipo de avión directamente:
-  - Aerolínea → derivar del prefijo ICAO del callsign (ARG = Aerolíneas Argentinas,
-    JAT = JetSMART, FBZ = Flybondi, LAN/LPE = LATAM, GLO = GOL, AZU = Azul, etc.). Tabla local en JS.
-  - Tipo de avión → base de aircraft de OpenSky (`icao24` → typecode) o adsbdb.com; cachear.
-- Origen/destino IATA → OpenSky no lo da de forma confiable. Usar la API gratuita de
-  adsbdb.com (callsign → ruta con códigos IATA/ICAO de aeropuertos). Cachear por callsign.
-  Si no hay ruta, mostrar `--- → ---` sin romper el layout.
+- **Principal: airplanes.live** (`https://api.airplanes.live/v2/point/{lat}/{lon}/{nm}`, formato readsb/ADSBx v2).
+  1 consulta por segundo, sin key ni cupo diario, uso no comercial. Trae `t` (tipo de avión) y matrícula.
+- **Fallbacks, en orden (`CONFIG.PROVEEDORES`):** adsb.fi (cita obligatoria, v3), adsb.lol (500 consultas/día sin key,
+  ODbL) y **OpenSky** (`/api/states/all` con bounding box) como último recurso. `Fuentes` (`web/js/fuentes.js`) maneja
+  fallback, enfriamientos tras errores/429, cupos diarios y el intervalo de consulta.
+- **OpenSky ya no acepta basic auth**: solo OAuth2 client credentials (`OPENSKY_CLIENT_ID/SECRET`), que desde el
+  navegador casi seguro no anda por CORS: usarlo vía el proxy de Termux. Anónimo: ~400 créditos/día.
+- Los readsb dan callsign, posición, altitud, velocidad, rumbo, `hex` y tipo; OpenSky **no** da tipo ni aerolínea:
+  - Aerolínea → prefijo ICAO del callsign (ARG, JAT, FBZ, LAN/LPE, GLO, AZU…). Tabla local en JS.
+  - Tipo de avión → campo `t` de readsb; si falta, adsbdb `/aircraft/{hex}` (`icao_type`), cacheado.
+- Origen/destino IATA → adsbdb.com `/callsign/{CS}` (CORS abierto), con caché en localStorage y validación de
+  plausibilidad geográfica. Si no hay ruta, mostrar `--- → ---` sin romper el layout. No commitear datos reales de rutas.
 - Logo → buscar por código IATA/ICAO de la aerolínea. Preferir **logos guardados localmente**
   en `web/logos/` para las aerolíneas que pasan por Rosario (ARG, JAT, FBZ, LAN/LPE, GLO, AZU,
   AAL, CMP, AVA…), con fallback a un ícono genérico de avión. Verificar licencia de cualquier
   fuente online antes de usarla.
 - ETA: no existe ETA real gratis. Calcular **tiempo hasta el punto de máxima aproximación**
   con velocidad y rumbo, y mostrarlo como "ETA" o "SOBRE IBARLUCEA EN 3 MIN".
-- Alternativa si OpenSky falla o se queda corto: adsb.lol / airplanes.live (API gratuitas
-  tipo `/v2/point/{lat}/{lon}/{radio_nm}`). **Verificar** términos y CORS antes de usarlas.
 - **No** usar scraping de Flightradar24 (no tiene API gratuita y viola sus términos).
-- Si hay problemas de CORS desde el navegador, resolver con un mini proxy en Termux
-  (Python/Node) que corra en `localhost` del mismo celu.
+- CORS: desde `file://` de los proveedores de vuelos no está verificado. `web/diag.html` lo prueba en el celu; si da
+  BLOQUEADO, usar `termux/proxy.py` (sirve `web/` en `http://127.0.0.1:8080/` y reenvía `/api/...`).
+  Con `--fixtures scripts/fixtures` el proxy responde sin internet (pruebas).
 
 ## Beep
 
@@ -80,8 +80,10 @@ Flujo base:
 ## Configuración
 
 Todo lo configurable va en un único objeto `CONFIG` al principio del JS (o `config.js`):
-`LAT`, `LON`, `RADIO_KM` (30), `INTERVALO_CONSULTA_S` (15), `TIMEOUT_SIN_AVIONES_S` (120),
-`VOLUMEN`, `HORARIO_SILENCIO` (ej. 23:00–07:00 sin beep), credenciales OpenSky opcionales.
+`LAT`, `LON`, `RADIO_KM` (30), `INTERVALO_REPOSO_S` (20), `INTERVALO_ACTIVO_S` (10), `TIMEOUT_SIN_AVIONES_S` (120),
+`VOLUMEN`, `HORARIO_SILENCIO` (ej. 23:00–07:00 sin beep), `PROVEEDORES`, `LIMITES`, `PROXY`, credenciales opcionales
+(OpenSky client id/secret, key de adsb.lol). Ojo: `Object.assign` en `config.local.js` es superficial; los ajustes
+anidados van como `CONFIG.LIMITES.opensky = {...}`.
 
 ## Convenciones
 

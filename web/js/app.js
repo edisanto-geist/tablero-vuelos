@@ -11,11 +11,18 @@
   // ---- overrides por URL ----
   var DEMO = Q.demo === '1';
   if (DEMO) {
-    CONFIG.INTERVALO_CONSULTA_S = CONFIG.DEMO.INTERVALO_CONSULTA_S;
+    CONFIG.INTERVALO_REPOSO_S = CONFIG.DEMO.INTERVALO_CONSULTA_S;
+    CONFIG.INTERVALO_ACTIVO_S = CONFIG.DEMO.INTERVALO_CONSULTA_S;
+    CONFIG.ENRIQUECER = false;
+    CONFIG.FRANJA_LENTA = null;
     CONFIG.TIMEOUT_SIN_AVIONES_S = CONFIG.DEMO.TIMEOUT_SIN_AVIONES_S;
     CONFIG.REBEEP_VUELO_S = CONFIG.DEMO.REBEEP_VUELO_S;
     CONFIG.PROVEEDOR = 'demo';
   }
+  if (Q.radio && parseFloat(Q.radio) > 0) CONFIG.RADIO_KM = Math.min(460, parseFloat(Q.radio));
+  if (Q.proveedor && !DEMO) CONFIG.PROVEEDOR = Q.proveedor;
+  if (Q.proxy === '1') CONFIG.PROXY = 'http://127.0.0.1:8080/api/';
+  else if (Q.proxy === '0') CONFIG.PROXY = '';
   if (Q.t !== undefined && !isNaN(parseFloat(Q.t))) CONFIG.DEMO.T_INICIAL_S = parseFloat(Q.t);
   if (Q.filas && parseInt(Q.filas, 10) > 0) CONFIG.FILAS_POR_PAGINA = parseInt(Q.filas, 10);
   if (Q.animar === '0') CONFIG.ANIMAR = false;
@@ -30,6 +37,12 @@
   var nBeeps = 0;
   var ultimoN = 0;
   var dbg = null;
+  var ultimoRes = null, ultimoOkMs = Date.now(), ultimosCrudos = [];
+  var ultimosVuelos = [];
+  var fuentes = raiz.Fuentes.crear(CONFIG, raiz.Proveedores, raiz.Red ? raiz.Red.almacen : null);
+  var enriq = (CONFIG.ENRIQUECER && raiz.Enriquecer && raiz.Red) ?
+    raiz.Enriquecer.crear(CONFIG, raiz.Red, raiz.Red.almacen, alEnriquecer) : null;
+  var enrFlag = false, enrUltimoMs = 0;
 
   // ---- pantalla física ----
   var wakeLock = null;
@@ -85,6 +98,8 @@
     var vuelos = raiz.Datos.procesar(crudos, CONFIG, ahora);
     var n = vuelos.length;
     ultimoN = n;
+    ultimosVuelos = vuelos;
+    if (enriq) enriq.pedir(vuelos, ahora);
 
     var hayNuevo = false, i;
     for (i = 0; i < n; i++) {
@@ -122,6 +137,7 @@
       }
     }
     refrescarAvisoSonido();
+    marcarVuelos(vuelos);
     if (DEBUG) {
       if (ESTADO !== 'REPOSO') {
         var malos = raiz.Tablero.verificarDesbordes();
@@ -131,33 +147,47 @@
     }
   }
 
-  function obtener(ahora) {
-    return new Promise(function (resolve) {
-      var listo = false;
-      function fin(v, cuelga) {
-        if (listo) return;
-        listo = true;
-        if (cuelga) console.warn("[app] proveedor '" + CONFIG.PROVEEDOR + "' no disponible en Fase 1");
-        resolve(v);
-      }
-      var prov = raiz.Proveedores && raiz.Proveedores[CONFIG.PROVEEDOR];
-      if (!prov) { fin([], true); return; }
-      var timer = setTimeout(function () { fin([], true); }, 10000);
+  function tick() {
+    fuentes.obtener(Date.now()).then(function (res) {
+      var ahora = Date.now();
+      ultimoRes = res;
       try {
-        prov.obtenerEstados(ahora).then(function (r) {
-          clearTimeout(timer); fin(r || [], false);
-        }, function () { clearTimeout(timer); fin([], true); });
-      } catch (e) { clearTimeout(timer); fin([], true); }
+        if (res.ok) {
+          ultimoOkMs = ahora; ultimosCrudos = res.estados;
+          if (enriq) enriq.aplicar(res.estados, ahora);
+          procesar(res.estados, ahora);
+        } else if (ESTADO !== 'REPOSO' && ahora - ultimoOkMs >= CONFIG.TIMEOUT_SIN_AVIONES_S * 1000) {
+          ultimosCrudos = [];
+          procesar([], ahora);
+        } else if (DEBUG) pintarDebug();   // falla corta: se mantiene lo que hay en pantalla
+      } catch (e) { console.error('[app] error en tick', e); }
+      setTimeout(tick, fuentes.intervaloS(ESTADO, new Date()) * 1000);
     });
   }
 
-  function tick() {
-    var ahora = Date.now();
-    obtener(ahora).then(function (crudos) {
-      try { procesar(crudos, Date.now()); }
-      catch (e) { console.error('[app] error en tick', e); }
-      setTimeout(tick, CONFIG.INTERVALO_CONSULTA_S * 1000);
-    });
+  // Re-render cuando llegan rutas/tipos de adsbdb: no toca 'vistos' ni el beep.
+  function alEnriquecer() {
+    if (enrFlag) return;
+    enrFlag = true;
+    var espera = Math.max(0, 500 - (Date.now() - enrUltimoMs));
+    setTimeout(function () {
+      enrFlag = false;
+      if (ESTADO !== 'ACTIVO' || !ultimosCrudos || !ultimosCrudos.length) return;
+      enrUltimoMs = Date.now();
+      try {
+        enriq.aplicar(ultimosCrudos, enrUltimoMs);
+        var v = raiz.Datos.procesar(ultimosCrudos, CONFIG, enrUltimoMs);
+        if (v.length) { ultimosVuelos = v; raiz.Tablero.mostrar(v); marcarVuelos(v); if (DEBUG) pintarDebug(); }
+      } catch (e) { console.error('[app] error al enriquecer', e); }
+    }, espera);
+  }
+
+  // Hook de pruebas (solo con debug=1): lista de vuelos del último render.
+  function marcarVuelos(vuelos) {
+    if (!DEBUG) return;
+    document.body.setAttribute('data-vuelos', JSON.stringify(vuelos.map(function (v) {
+      return v.vuelo + '|' + (v.origen || '---') + '>' + (v.destino || '---') + '|' + (v.tipo || '----');
+    })));
   }
 
   // ---- overlay de debug ----
@@ -165,8 +195,28 @@
     if (!dbg) return;
     var t = raiz.Tablero.estado();
     var tc = (CONFIG.PROVEEDOR === 'demo' && raiz.Proveedores.demo) ? raiz.Proveedores.demo.tCiclo(Date.now()).toFixed(0) : '-';
-    dbg.textContent = 'estado=' + ESTADO + ' n=' + ultimoN + ' t=' + tc + 's pag=' + (t.pagina + 1) + '/' + t.paginas +
+    var l1 = 'estado=' + ESTADO + ' n=' + ultimoN + ' t=' + tc + 's pag=' + (t.pagina + 1) + '/' + t.paginas +
       ' tp=' + (t.timerPagina ? 1 : 0) + ' tr=' + (t.timerReloj ? 1 : 0) + ' beeps=' + nBeeps + ' ult=' + ultimoBeep + ' modo=' + t.modo;
+    var fi = fuentes.info(), ahora = Date.now();
+    var r = ultimoRes, ult = r && r.intentos && r.intentos.length ? r.intentos[r.intentos.length - 1] : null;
+    var prov = r && r.proveedor ? r.proveedor : (ult ? ult.prov : '-');
+    var modoRed = (raiz.Red && raiz.Red.proxyBase()) ? 'proxy' : 'directo';
+    var sig = fuentes.intervaloS(ESTADO, new Date());
+    var l2 = 'fuente=' + prov + '(' + modoRed + ') http=' + (ult ? ult.status : '-') + ' ' + (ult ? Math.round(ult.ms) : '-') + 'ms' +
+      ' crudos=' + (r && r.estados ? r.estados.length : '-') + ' radio=' + ultimoN + '/' + CONFIG.RADIO_KM + 'km' +
+      ' sig=' + Math.round(sig) + 's fallidos=' + fi.ticksFallidos;
+    var enf = [], cup = [], rem = '';
+    Object.keys(fi.porProv).forEach(function (n) {
+      var p = fi.porProv[n];
+      if (p.enfriaHastaMs > ahora) enf.push(n + ' ' + Math.round((p.enfriaHastaMs - ahora) / 1000) + 's');
+      if (p.cupo > 0) cup.push(n + ' ' + p.usados + '/' + p.cupo);
+      if (n === 'opensky' && p.restante !== null) rem = ' rem=' + p.restante;
+    });
+    var ei = enriq ? enriq.info() : null;
+    var l3 = 'enfrian: ' + (enf.length ? enf.join(' | ') : '-') + ' | cupos: ' + (cup.length ? cup.join(' ') : '-') + rem +
+      ' | enriq ' + (ei ? 'cola=' + ei.cola + ' rutas=' + ei.rutas + ' tipos=' + ei.tipos + ' adsbdb=' + (ei.ultimoStatus === null || ei.ultimoStatus === undefined ? '-' : ei.ultimoStatus) +
+        ' pausa=' + (ei.pausaHastaMs > ahora ? Math.round((ei.pausaHastaMs - ahora) / 1000) : 0) : 'off');
+    dbg.textContent = l1 + '\n' + l2 + '\n' + l3;
   }
 
   // ---- arranque ----
@@ -178,6 +228,7 @@
       dbg.id = 'debug';
       document.body.appendChild(dbg);
       pintarDebug();
+      setInterval(pintarDebug, 2000);
     }
     ['click', 'touchstart', 'keydown'].forEach(function (ev) {
       document.addEventListener(ev, function () { setTimeout(refrescarAvisoSonido, 150); }, true);

@@ -9,18 +9,19 @@ Pedile a Claude Code que vaya fase por fase. Primer prompt sugerido al final.
 - [x] `web/beep.mp3` de 0.5 s generado por script + reproducción con Web Audio
 
 ## Fase 2 — Datos reales
-- [ ] Consulta a OpenSky con bounding box alrededor de Ibarlucea
-- [ ] Filtro por distancia (haversine) ≤ 30 km
-- [ ] Aerolínea + logo por prefijo de callsign, tipo de avión por `icao24`, origen→destino IATA por adsbdb (con caché)
-- [ ] Dirección y distancia desde Ibarlucea ("AL NORTE · 12 KM") para ubicarlo en el cielo
-- [ ] Cálculo de tiempo al punto más cercano ("ETA")
-- [ ] Timeout de 2 min sin aviones → negro y silencio
-- [ ] Manejo de errores / reintentos / rate limits
+- [x] Consulta de vuelos reales: airplanes.live (principal) con fallback adsb.fi / adsb.lol / OpenSky (bounding box)
+- [x] Filtro por distancia (haversine) ≤ 30 km
+- [x] Aerolínea (logo pendiente) por prefijo de callsign, tipo de avión por `icao24`, origen→destino IATA por adsbdb (con caché)
+- [x] Dirección y distancia desde Ibarlucea ("AL NORTE · 12 KM") para ubicarlo en el cielo
+- [x] Cálculo de tiempo al punto más cercano ("ETA")
+- [x] Timeout de 2 min sin aviones → negro y silencio
+- [x] Manejo de errores / reintentos / rate limits (enfriamientos, cupos diarios, fallback)
+- [ ] Prueba en vivo en el celu con `web/diag.html` (CORS y cobertura reales sin verificar)
 
 ## Fase 3 — El celu
 - [ ] Guía con Fully Kiosk Browser (encender pantalla, autoplay, arranque al bootear)
 - [ ] Alternativa con Tasker (perfil exportado en `tasker/`)
-- [ ] Opcional: Termux como proxy local si hay CORS
+- [~] Opcional: Termux como proxy local si hay CORS (`termux/proxy.py` hecho; falta guía de arranque en el celu)
 - [ ] `docs/bateria-y-alimentacion.md`
 
 ## Fase 4 — Pulido
