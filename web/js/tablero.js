@@ -204,8 +204,8 @@
 
   function actualizarReloj() {
     var d = new Date();
-    var h = d.getHours(), m = d.getMinutes();
-    el.reloj.textContent = (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+    var h = d.getHours(), m = d.getMinutes(), s = d.getSeconds();
+    el.reloj.textContent = (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
   }
 
   function detenerTimers() {
@@ -230,7 +230,7 @@
   }
 
   function asegurarTimers() {
-    if (!timerReloj) { timerReloj = setInterval(actualizarReloj, 30000); }
+    if (!timerReloj) { timerReloj = setInterval(actualizarReloj, 1000); }
     var np = paginas();
     if (np > 1 && !timerPagina) {
       timerPagina = setInterval(function () {
@@ -337,7 +337,7 @@
       actualizarEncabezado();
       el.pagina.textContent = '';
       detenerTimers();
-      timerReloj = setInterval(actualizarReloj, 30000);
+      timerReloj = setInterval(actualizarReloj, 1000);
     },
     // Vuelve a negro total: corta timers y esconde todo.
     ocultar: function () {

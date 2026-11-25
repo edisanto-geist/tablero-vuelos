@@ -336,7 +336,7 @@
         }, function () { estadoEn(est, 'No se pudo pedir permiso para el sensor de orientación.', 'mal'); });
       } else iniciar();
     });
-    var guia = el('div', { clase: 'ayuda', texto: 'Para LEER BRÚJULA: poné el celu acostado, con la parte de arriba apuntando hacia donde mirás parado frente al tablero.' });
+    var guia = el('div', { clase: 'ayuda', texto: 'Se mide una sola vez. Apoyá el celu plano donde va a quedar el tablero, con la parte de arriba apuntando para el lado contrario a vos (hacia donde mirás). Tocá LEER BRÚJULA, no lo muevas 5 s, guardá y después ponelo en el soporte como quieras.' });
     return el('div', null, [fila, b, est, guia]);
   }
 
