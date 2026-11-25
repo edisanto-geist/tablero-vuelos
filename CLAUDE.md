@@ -86,6 +86,18 @@ Todo lo configurable va en un único objeto `CONFIG` al principio del JS (o `con
 (OpenSky client id/secret, key de adsb.lol). Ojo: `Object.assign` en `config.local.js` es superficial; los ajustes
 anidados van como `CONFIG.LIMITES.opensky = {...}`.
 
+**Prioridad:** `config.js` < `config.local.js` < ajustes del celu (localStorage `tv.ajustes.v1`) < parámetros de URL.
+
+- **Ajustes del celu** (`web/js/ajustes.js`, módulo `Ajustes`): se editan en `web/config.html`. Se guardan **solo las diferencias**
+  con la base (config.js + config.local.js); `CONFIG_BASE` guarda esa base. `Ajustes.ESQUEMA` define cada campo (ruta, tipo, rango);
+  un valor inválido o una ruta desconocida se ignora, nunca rompe. Tests: `node scripts/test_ajustes.js`.
+- **Cómo se llega:** 5 toques en menos de 3 s en cualquier lugar del tablero (también con la pantalla negra; `web/js/acceso-config.js`),
+  o directo a `/config.html`. Vuelve sola al tablero a los 5 min sin tocar nada, sin guardar. Guardar → recarga el tablero (las cachés quedan).
+- `config.html` tiene: USAR MI UBICACIÓN, LEER BRÚJULA (`ORIENTACION_PANTALLA_DEG` = rumbo hacia el que mira quien está frente al tablero),
+  PROBAR BEEP, orden de proveedores, claves (solo en el celu) y copia de seguridad (exportar/importar JSON; el JSON incluye la ubicación: no publicarlo).
+- Claves nuevas: `ALTERNAR_L3_S`, `HORARIOS_MODO` (`no|calc|api`), `HORARIOS_API`, `HORARIOS_CUPO_DIARIO`, `HORARIOS_SOLO_LOCAL`,
+  `HORARIOS_ESPACIADO_MS`, `HORARIOS_KEY` (sensible: nunca en el repo), `ZONA_UTC_MIN`.
+
 ## Convenciones
 
 - Idioma: **español rioplatense** en UI, comentarios y docs. Textos del tablero en MAYÚSCULAS.

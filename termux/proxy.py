@@ -10,7 +10,9 @@ Uso:
                           [--falla airplaneslive=429 ...] [--demora-adsbdb-ms 1500]
 
 Credenciales (opcionales): variables de entorno OPENSKY_CLIENT_ID, OPENSKY_CLIENT_SECRET,
-ADSBLOL_KEY, o el archivo termux/credenciales.json (esta en .gitignore) con esas mismas claves.
+ADSBLOL_KEY, AEROAPI_KEY (horarios), o el archivo termux/credenciales.json (esta en .gitignore) con esas mismas claves.
+Tambien pueden llegar por header desde config.html (X-TV-ADSBLOL-KEY, X-TV-OPENSKY-ID, X-TV-OPENSKY-SECRET,
+X-TV-AEROAPI-KEY) y esos tienen prioridad sobre el archivo y las variables de entorno.
 Con --fixtures no sale a internet: contesta con los JSON de esa carpeta.
 """
 import argparse
@@ -32,12 +34,15 @@ BASES = {
     'adsblol': 'https://api.adsb.lol/',
     'opensky': 'https://opensky-network.org/api/',
     'adsbdb': 'https://api.adsbdb.com/v0/',
+    'aeroapi': 'https://aeroapi.flightaware.com/aeroapi/',
 }
+# De AeroAPI solo se deja pasar lo que usa el tablero (cada consulta cuesta plata).
+RUTA_AEROAPI = re.compile(r'^flights/[A-Za-z0-9]{3,8}$')
 AUTH_OPENSKY = 'https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token'
 PASAR = ('Retry-After', 'X-Rate-Limit-Remaining', 'X-Rate-Limit-Retry-After-Seconds')
 QUI = os.path.dirname(os.path.abspath(__file__))
 
-CFG = {'fixtures': None, 'fallas': {}, 'demora_adsbdb': 0, 'cred': {}, 'token': None, 'token_vence': 0}
+CFG = {'fixtures': None, 'fallas': {}, 'demora_adsbdb': 0, 'cred': {}, 'tokens': {}}
 
 
 def cargar_credenciales():
@@ -47,31 +52,39 @@ def cargar_credenciales():
             cred = json.load(f)
     except (OSError, ValueError):
         pass
-    for k in ('OPENSKY_CLIENT_ID', 'OPENSKY_CLIENT_SECRET', 'ADSBLOL_KEY'):
+    for k in ('OPENSKY_CLIENT_ID', 'OPENSKY_CLIENT_SECRET', 'ADSBLOL_KEY', 'AEROAPI_KEY'):
         if os.environ.get(k):
             cred[k] = os.environ[k]
     return cred
 
 
-def token_opensky(forzar=False):
-    c = CFG['cred']
-    if not c.get('OPENSKY_CLIENT_ID') or not c.get('OPENSKY_CLIENT_SECRET'):
+def credencial(cli, clave, header):
+    """Header X-TV-* del navegador (prioridad) o archivo/variable de entorno."""
+    return cli.get(header) or CFG['cred'].get(clave) or ''
+
+
+def token_opensky(cli, forzar=False):
+    cid = credencial(cli, 'OPENSKY_CLIENT_ID', 'x-tv-opensky-id')
+    sec = credencial(cli, 'OPENSKY_CLIENT_SECRET', 'x-tv-opensky-secret')
+    if not cid or not sec:
         return None
-    if not forzar and CFG['token'] and time.time() < CFG['token_vence']:
-        return CFG['token']
-    cuerpo = urllib.parse.urlencode({'grant_type': 'client_credentials', 'client_id': c['OPENSKY_CLIENT_ID'],
-                                     'client_secret': c['OPENSKY_CLIENT_SECRET']}).encode()
+    t = CFG['tokens'].get(cid)   # el token se cachea por client_id
+    if not forzar and t and time.time() < t[1]:
+        return t[0]
+    cuerpo = urllib.parse.urlencode({'grant_type': 'client_credentials', 'client_id': cid,
+                                     'client_secret': sec}).encode()
     req = urllib.request.Request(AUTH_OPENSKY, data=cuerpo, method='POST',
                                  headers={'Content-Type': 'application/x-www-form-urlencoded'})
     try:
         with urllib.request.urlopen(req, timeout=10) as r:
             j = json.loads(r.read().decode('utf-8'))
-        CFG['token'] = j.get('access_token')
-        CFG['token_vence'] = time.time() + float(j.get('expires_in', 1800)) - 60
+        if j.get('access_token'):
+            CFG['tokens'][cid] = (j['access_token'], time.time() + float(j.get('expires_in', 1800)) - 60)
+            return j['access_token']
     except Exception as e:  # noqa: BLE001
         print('[proxy] no pude pedir el token de OpenSky: %s' % e, file=sys.stderr)
-        CFG['token'] = None
-    return CFG['token']
+    CFG['tokens'].pop(cid, None)
+    return None
 
 
 def leer_cuerpo(resp):
@@ -84,23 +97,31 @@ def leer_cuerpo(resp):
     return datos
 
 
-def pedir_upstream(servicio, resto, query, reintento=True):
+def pedir_upstream(servicio, resto, query, cli=None, reintento=True):
     """Devuelve (status, headers_dict, cuerpo_bytes). Lanza OSError si no hay red."""
+    cli = cli or {}
     url = BASES[servicio] + resto + (('?' + query) if query else '')
     h = {'User-Agent': 'tablero-vuelos/1.0', 'Accept': 'application/json', 'Accept-Encoding': 'gzip'}
-    if servicio == 'adsblol' and CFG['cred'].get('ADSBLOL_KEY'):
-        h['x-api-key'] = CFG['cred']['ADSBLOL_KEY']
+    if servicio == 'adsblol':
+        k = credencial(cli, 'ADSBLOL_KEY', 'x-tv-adsblol-key')
+        if k:
+            h['x-api-key'] = k
     if servicio == 'opensky':
-        tk = token_opensky()
+        tk = token_opensky(cli)
         if tk:
             h['Authorization'] = 'Bearer ' + tk
+    if servicio == 'aeroapi':
+        k = credencial(cli, 'AEROAPI_KEY', 'x-tv-aeroapi-key')
+        if not k:
+            return 401, {}, b'{"error":"sin clave de horarios"}'
+        h['x-apikey'] = k
     req = urllib.request.Request(url, headers=h)
     try:
         with urllib.request.urlopen(req, timeout=10) as r:
             return r.status, dict(r.headers.items()), leer_cuerpo(r)
     except urllib.error.HTTPError as e:
-        if e.code == 401 and servicio == 'opensky' and reintento and token_opensky(forzar=True):
-            return pedir_upstream(servicio, resto, query, reintento=False)
+        if e.code == 401 and servicio == 'opensky' and reintento and token_opensky(cli, forzar=True):
+            return pedir_upstream(servicio, resto, query, cli, reintento=False)
         return e.code, dict(e.headers.items()), leer_cuerpo(e)
 
 
@@ -108,6 +129,11 @@ def fixture(servicio, resto):
     """Devuelve (status, archivo) segun la tabla del modo --fixtures."""
     d = CFG['fixtures']
     ruta = resto.split('?')[0]
+    if servicio == 'aeroapi':
+        m = re.match(r'^flights/([A-Za-z0-9]+)$', ruta)
+        if m:
+            f = os.path.join(d, 'aeroapi_flights_%s.json' % m.group(1).upper())
+            return 200, (f if os.path.isfile(f) else os.path.join(d, 'aeroapi_flights_vacio.json'))
     if servicio in ('airplaneslive', 'adsbfi', 'adsblol'):
         return 200, os.path.join(d, 'readsb_point.json')
     if servicio == 'opensky':
@@ -177,6 +203,9 @@ class Manejador(SimpleHTTPRequestHandler):
         if servicio not in BASES:
             self._responder(404, b'{"error":"servicio desconocido"}')
             return
+        if servicio == 'aeroapi' and not RUTA_AEROAPI.match(resto):
+            self._responder(400, b'{"error":"ruta no permitida"}')
+            return
         if servicio == 'adsbdb' and CFG['demora_adsbdb'] > 0:
             time.sleep(CFG['demora_adsbdb'] / 1000.0)
         if servicio in CFG['fallas']:
@@ -195,7 +224,8 @@ class Manejador(SimpleHTTPRequestHandler):
                 self._responder(404, b'{"response":"sin fixture"}')
             return
         try:
-            cod, hs, cuerpo = pedir_upstream(servicio, resto, query)
+            cli = {k.lower(): v.strip() for k, v in self.headers.items() if k.lower().startswith('x-tv-')}
+            cod, hs, cuerpo = pedir_upstream(servicio, resto, query, cli)
         except Exception as e:  # noqa: BLE001 (red caida, timeout, DNS)
             self._responder(502, json.dumps({'error': str(e)}).encode())
             return

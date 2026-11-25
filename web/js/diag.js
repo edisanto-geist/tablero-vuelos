@@ -102,6 +102,48 @@
     });
   }
 
+  // Ajustes guardados en este celu (config.html) y estado de los horarios (AeroAPI por proxy).
+  function lineaAjustes() {
+    var out = el('ajustes');
+    var A = raiz.Ajustes;
+    if (!A || !A.info) { out.textContent = 'Ajustes del celu: módulo no disponible'; return; }
+    var i = A.info(), g = i.guardados;
+    var n = typeof g === 'number' ? g : (g && typeof g === 'object' ? Object.keys(g).length : 0);
+    var rech = i.rechazados;
+    var nr = typeof rech === 'number' ? rech : (rech && typeof rech === 'object' ? Object.keys(rech).length : 0);
+    out.textContent = 'Ajustes del celu: ' + n + (n === 1 ? ' cambio' : ' cambios') + (nr ? ' (' + nr + ' rechazados)' : '');
+  }
+  function lineaHorarios() {
+    var out = el('horarios');
+    var H = raiz.Horarios;
+    if (!H) { out.textContent = 'Horarios: módulo no disponible'; return; }
+    var h = H.crear(CONFIG, Red, Red.almacen);
+    var i = h.info();
+    out.textContent = 'Horarios: modo=' + (CONFIG.HORARIOS_MODO || 'calc') + ' ' + (i.activo ? 'ACTIVO' : 'inactivo (' + i.motivo + ')') +
+      '  usados=' + i.usados + '/' + i.cupo + '  distintosHoy=' + i.distintosHoy + '  bloqueadoHoy=' + (i.bloqueadoHoy ? 'SÍ' : 'no') +
+      '  clave=' + (CONFIG.HORARIOS_KEY ? 'cargada' : 'vacía');
+  }
+  function probarHorarios() {
+    var out = el('horarios-prueba'), H = raiz.Horarios;
+    if (!H) { out.textContent = 'Sin módulo de horarios.'; return; }
+    if (!Red.proxyBase()) { out.textContent = 'Sin proxy no se puede: AeroAPI solo va por el proxy (Termux o Worker).'; return; }
+    var cs = Q.cs ? String(Q.cs).toUpperCase() : 'ARG1541', ya = Date.now();
+    function iso(ms) { return new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z'); }
+    var ruta = 'flights/' + cs + '?ident_type=designator&start=' + iso(ya - 20 * 3600000) + '&end=' + iso(ya + 4 * 3600000);
+    out.textContent = 'Consultando ' + cs + '...';
+    Red.pedirJSON({ url: Red.url('aeroapi', ruta) }).then(function (r) {
+      var api = r.json ? H.parsearAeroapi(r.json, ya) : null;
+      var linea = 'status=' + r.status + ' ' + Math.round(r.ms) + 'ms' + (r.error ? ' error=' + r.error : '');
+      if (api) {
+        function hh(ms) { return ms === null ? '--:--' : H.fechaLocal(ms, CONFIG) + ' ' + new Date(ms + (CONFIG.ZONA_UTC_MIN === undefined ? -180 : CONFIG.ZONA_UTC_MIN) * 60000).toISOString().slice(11, 16); }
+        linea += '\n' + (api.origen || '---') + '>' + (api.destino || '---') + ' salida real=' + hh(api.salidaRealMs) + ' prog=' + hh(api.salidaProgMs) +
+          '\nllegada est=' + hh(api.etaEstMs) + ' prog=' + hh(api.etaProgMs) + ' real=' + hh(api.llegadaRealMs);
+      } else if (r.status === 401 || r.status === 403) linea += '\nClave inválida o ausente.';
+      else if (r.ok) linea += '\nSin vuelos para ese callsign.';
+      out.innerHTML = '<span class="' + (r.ok ? 'ok' : 'mal') + '">' + esc(linea) + '</span>';
+    });
+  }
+
   function recomendar(res) {
     var r = el('reco');
     var mejor = null;
@@ -129,6 +171,8 @@
     corriendo = true;
     el('otra').disabled = true;
     cabecera();
+    lineaAjustes();
+    lineaHorarios();
     el('reco').textContent = 'Probando...';
     el('adsbdb').textContent = '-';
     var tabla = el('tabla');
@@ -154,5 +198,6 @@
   }
 
   el('otra').addEventListener('click', correr);
+  el('probar-horarios').addEventListener('click', probarHorarios);
   correr();
 })(window);

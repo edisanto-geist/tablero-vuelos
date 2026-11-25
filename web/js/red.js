@@ -9,6 +9,7 @@
     adsblol: 'https://api.adsb.lol/',
     opensky: 'https://opensky-network.org/api/',
     adsbdb: 'https://api.adsbdb.com/v0/',
+    aeroapi: 'https://aeroapi.flightaware.com/aeroapi/',
     openskyauth: 'https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token'
   };
 
@@ -44,6 +45,20 @@
     });
   }
 
+  // Credenciales para el proxy local: viajan por header X-TV-* solo a 127.0.0.1 y nunca a la nube.
+  function headersConCredenciales(url, base) {
+    var hs = {};
+    Object.keys(base || {}).forEach(function (k) { hs[k] = base[k]; });
+    if (!cfg || !Red.esProxyLocal()) return hs;
+    var m = /\/api\/(adsblol|opensky|aeroapi)\//.exec(String(url || ''));
+    if (!m) return hs;
+    function poner(nombre, valor) { if (valor && String(valor).trim() !== '') hs[nombre] = String(valor).trim(); }
+    if (m[1] === 'adsblol') poner('X-TV-ADSBLOL-KEY', cfg.ADSBLOL_KEY);
+    else if (m[1] === 'opensky') { poner('X-TV-OPENSKY-ID', cfg.OPENSKY_CLIENT_ID); poner('X-TV-OPENSKY-SECRET', cfg.OPENSKY_CLIENT_SECRET); }
+    else poner('X-TV-AEROAPI-KEY', cfg.HORARIOS_KEY);
+    return hs;
+  }
+
   var Red = {
     BASES: BASES,
     configurar: function (c) { cfg = c; },
@@ -63,6 +78,11 @@
       p = String(p);
       return p.charAt(p.length - 1) === '/' ? p : p + '/';
     },
+    // true si las consultas pasan por el proxy local (Termux / servidor de desarrollo), el único que puede recibir credenciales.
+    esProxyLocal: function () {
+      var b = Red.proxyBase();
+      return b === '/api/' || /^http:\/\/(127\.0\.0\.1|localhost)([:\/]|$)/.test(b);
+    },
     url: function (servicio, ruta) {
       var pb = Red.proxyBase();
       if (pb) return pb + servicio + '/' + ruta;
@@ -73,7 +93,7 @@
       op = op || {};
       var o = {
         url: op.url, metodo: op.metodo || 'GET', cuerpo: op.cuerpo === undefined ? null : op.cuerpo,
-        headers: op.headers || {},
+        headers: headersConCredenciales(op.url, op.headers),
         timeoutMs: op.timeoutMs || ((cfg && cfg.TIMEOUT_RED_S) || 8) * 1000
       };
       var t0 = ahora();

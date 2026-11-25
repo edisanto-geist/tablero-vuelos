@@ -216,6 +216,7 @@
               var er = entrada('r', cs);
               if (er && er.v && Enriquecer.plausible(er.v, c.lat, c.lon)) {
                 c.origen = er.v.origen; c.destino = er.v.destino;
+                c.ruta = { oLat: er.v.oLat, oLon: er.v.oLon, dLat: er.v.dLat, dLon: er.v.dLon };
               }
             }
             if (!c.tipo) {

@@ -1,9 +1,10 @@
 // Normalización y filtrado de estados crudos de vuelos (formato tipo OpenSky).
 (function (raiz) {
-  var Geo = raiz.Geo, Aerolineas = raiz.Aerolineas;
+  var Geo = raiz.Geo, Aerolineas = raiz.Aerolineas, Horarios = raiz.Horarios;
   if (typeof require === 'function' && typeof module === 'object') {
     if (!Geo) Geo = require('./geo.js');
     if (!Aerolineas) Aerolineas = require('./aerolineas.js');
+    if (!Horarios) { try { Horarios = require('./horarios.js'); } catch (e) { Horarios = null; } }
   }
 
   function num(v) { return (typeof v === 'number' && isFinite(v)) ? v : null; }
@@ -32,8 +33,12 @@
         velVerticalMs: num(crudo.velVerticalMs), enTierra: !!crudo.enTierra,
         distanciaKm: null, marcacionDeg: null, cardinal: null, encima: false,
         seAcerca: false, minutosAlPaso: null, distanciaPasoKm: null,
-        actualizadoMs: num(crudo.tsPosicion) !== null ? crudo.tsPosicion : ahoraMs
+        actualizadoMs: num(crudo.tsPosicion) !== null ? crudo.tsPosicion : ahoraMs,
+        oLat: null, oLon: null, dLat: null, dLon: null,
+        salidaMs: null, salidaTipo: null, salidaProgMs: null,
+        etaMs: null, etaTipo: null, etaProgMs: null, horarioFuente: null
       };
+      if (crudo.horarioApi) v.horarioApi = crudo.horarioApi;
       if (lat !== null && lon !== null) {
         v.distanciaKm = Geo.distanciaKm(config.LAT, config.LON, lat, lon);
         v.marcacionDeg = Geo.rumboDeg(config.LAT, config.LON, lat, lon);
@@ -44,6 +49,9 @@
         v.minutosAlPaso = ap.minutos;
         v.distanciaPasoKm = ap.distMinKm;
       }
+      // Horarios SAL/ETA (calculados o de la API). Sin el módulo, todo queda en null.
+      var H = Horarios || raiz.Horarios;
+      if (H) H.completar(v, config, ahoraMs, crudo);
       return v;
     },
     procesar: function (crudos, config, ahoraMs) {

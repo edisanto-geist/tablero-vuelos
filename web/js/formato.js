@@ -31,9 +31,26 @@
     return 'SE ALEJA';
   }
 
+  function hora(ms, config) {
+    var z = (config && typeof config.ZONA_UTC_MIN === 'number') ? config.ZONA_UTC_MIN : -180;
+    var d = new Date(ms + z * 60000);
+    var h = d.getUTCHours(), m = d.getUTCMinutes();
+    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+  }
+  // 'SALIÓ 07:52' (real), 'PROG  07:30', 'SALIÓ~07:45' (calculado), 'SALIÓ --:--'. Siempre 11 caracteres.
+  function textoHorario(ms, tipo, config, real, vivo) {
+    if (ms === null || ms === undefined || !tipo) return vivo + ' --:--';
+    var h = hora(ms, config);
+    if (tipo === 'prog') return 'PROG  ' + h;
+    if (tipo === 'calc') return vivo + '~' + h;
+    if (tipo === 'real') return real + ' ' + h;
+    return vivo + ' ' + h;     // 'est'
+  }
+
   var Formato = {
-    ancho: { vuelo: 8, ruta: 7, direccion: 19, aerolinea: 11, tipo: 4, altitud: 9, estado: 14, nombre: 22 },
+    ancho: { vuelo: 8, ruta: 7, direccion: 19, aerolinea: 11, tipo: 4, altitud: 9, estado: 14, nombre: 22, salida: 11, eta: 11 },
     ajustar: ajustar,
+    hora: hora,
     fila: function (v, config) {
       var w = Formato.ancho;
       var km = Math.max(1, Math.round(v.distanciaKm));
@@ -46,7 +63,13 @@
         nombre: ajustar(v.aerolinea ? v.aerolinea.nombre : '---', w.nombre),
         tipo: ajustar(v.tipo || '----', w.tipo),
         altitud: ajustar(altitud(v, config), w.altitud),
-        estado: ajustar(estado(v, config), w.estado)
+        estado: ajustar(estado(v, config), w.estado),
+        salida: ajustar(textoHorario(v.salidaMs, v.salidaTipo, config, 'SALIÓ', 'SALIÓ'), w.salida),
+        eta: ajustar(textoHorario(v.etaMs, v.etaTipo, config, 'LLEGÓ', 'LLEGA'), w.eta),
+        salidaTipo: v.salidaMs === null || v.salidaMs === undefined ? null : (v.salidaTipo || null),
+        etaTipo: v.etaMs === null || v.etaMs === undefined ? null : (v.etaTipo || null),
+        hayHorarios: !!((v.salidaMs !== null && v.salidaMs !== undefined && v.salidaTipo) ||
+                        (v.etaMs !== null && v.etaMs !== undefined && v.etaTipo))
       };
     }
   };

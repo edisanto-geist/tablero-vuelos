@@ -26,6 +26,8 @@
   if (Q.t !== undefined && !isNaN(parseFloat(Q.t))) CONFIG.DEMO.T_INICIAL_S = parseFloat(Q.t);
   if (Q.filas && parseInt(Q.filas, 10) > 0) CONFIG.FILAS_POR_PAGINA = parseInt(Q.filas, 10);
   if (Q.animar === '0') CONFIG.ANIMAR = false;
+  if (Q.horarios === 'no' || Q.horarios === 'calc' || Q.horarios === 'api') CONFIG.HORARIOS_MODO = Q.horarios;
+  if (Q.l3 === 'a' || Q.l3 === 'b') CONFIG.L3_VISTA = Q.l3;
   if (Q.orientacion !== undefined && !isNaN(parseFloat(Q.orientacion))) CONFIG.ORIENTACION_PANTALLA_DEG = parseFloat(Q.orientacion);
   var DEBUG = Q.debug === '1';
 
@@ -42,6 +44,9 @@
   var fuentes = raiz.Fuentes.crear(CONFIG, raiz.Proveedores, raiz.Red ? raiz.Red.almacen : null);
   var enriq = (CONFIG.ENRIQUECER && raiz.Enriquecer && raiz.Red) ?
     raiz.Enriquecer.crear(CONFIG, raiz.Red, raiz.Red.almacen, alEnriquecer) : null;
+  // Horarios por API (AeroAPI vía proxy). En demo no se pide nada: solo horarios calculados.
+  var horar = (!DEMO && raiz.Horarios && raiz.Red) ?
+    raiz.Horarios.crear(CONFIG, raiz.Red, raiz.Red.almacen, alEnriquecer) : null;
   var enrFlag = false, enrUltimoMs = 0;
 
   // ---- pantalla física ----
@@ -100,6 +105,7 @@
     ultimoN = n;
     ultimosVuelos = vuelos;
     if (enriq) enriq.pedir(vuelos, ahora);
+    if (horar) horar.pedir(vuelos, ahora);
 
     var hayNuevo = false, i;
     for (i = 0; i < n; i++) {
@@ -155,6 +161,7 @@
         if (res.ok) {
           ultimoOkMs = ahora; ultimosCrudos = res.estados;
           if (enriq) enriq.aplicar(res.estados, ahora);
+          if (horar) horar.aplicar(res.estados, ahora);
           procesar(res.estados, ahora);
         } else if (ESTADO !== 'REPOSO' && ahora - ultimoOkMs >= CONFIG.TIMEOUT_SIN_AVIONES_S * 1000) {
           ultimosCrudos = [];
@@ -165,7 +172,7 @@
     });
   }
 
-  // Re-render cuando llegan rutas/tipos de adsbdb: no toca 'vistos' ni el beep.
+  // Re-render cuando llegan rutas/tipos de adsbdb u horarios de la API: no toca 'vistos' ni el beep.
   function alEnriquecer() {
     if (enrFlag) return;
     enrFlag = true;
@@ -175,7 +182,8 @@
       if (ESTADO !== 'ACTIVO' || !ultimosCrudos || !ultimosCrudos.length) return;
       enrUltimoMs = Date.now();
       try {
-        enriq.aplicar(ultimosCrudos, enrUltimoMs);
+        if (enriq) enriq.aplicar(ultimosCrudos, enrUltimoMs);
+        if (horar) horar.aplicar(ultimosCrudos, enrUltimoMs);
         var v = raiz.Datos.procesar(ultimosCrudos, CONFIG, enrUltimoMs);
         if (v.length) { ultimosVuelos = v; raiz.Tablero.mostrar(v); marcarVuelos(v); if (DEBUG) pintarDebug(); }
       } catch (e) { console.error('[app] error al enriquecer', e); }
@@ -185,6 +193,10 @@
   // Hook de pruebas (solo con debug=1): lista de vuelos del último render.
   function marcarVuelos(vuelos) {
     if (!DEBUG) return;
+    document.body.setAttribute('data-horarios', JSON.stringify(vuelos.map(function (v) {
+      var f = raiz.Formato.fila(v, CONFIG);
+      return v.vuelo + '|' + f.salida.trim() + '|' + f.eta.trim();
+    })));
     document.body.setAttribute('data-vuelos', JSON.stringify(vuelos.map(function (v) {
       return v.vuelo + '|' + (v.origen || '---') + '>' + (v.destino || '---') + '|' + (v.tipo || '----');
     })));
@@ -216,7 +228,12 @@
     var l3 = 'enfrian: ' + (enf.length ? enf.join(' | ') : '-') + ' | cupos: ' + (cup.length ? cup.join(' ') : '-') + rem +
       ' | enriq ' + (ei ? 'cola=' + ei.cola + ' rutas=' + ei.rutas + ' tipos=' + ei.tipos + ' adsbdb=' + (ei.ultimoStatus === null || ei.ultimoStatus === undefined ? '-' : ei.ultimoStatus) +
         ' pausa=' + (ei.pausaHastaMs > ahora ? Math.round((ei.pausaHastaMs - ahora) / 1000) : 0) : 'off');
-    dbg.textContent = l1 + '\n' + l2 + '\n' + l3;
+    var hi = horar ? horar.info() : null;
+    var l4 = 'horarios modo=' + (CONFIG.HORARIOS_MODO || 'calc') + ' activo=' + (hi ? (hi.activo ? 1 : 0) + (hi.motivo ? '(' + hi.motivo + ')' : '') : 'off') +
+      (hi ? ' usados=' + hi.usados + '/' + hi.cupo + ' cola=' + hi.cola + ' distintosHoy=' + hi.distintosHoy +
+        ' ult=' + (hi.ultimoStatus === null || hi.ultimoStatus === undefined ? '-' : hi.ultimoStatus) +
+        ' bloq=' + (hi.bloqueadoHoy ? 1 : 0) : '');
+    dbg.textContent = l1 + '\n' + l2 + '\n' + l3 + '\n' + l4;
   }
 
   // ---- arranque ----
@@ -230,6 +247,11 @@
       pintarDebug();
       setInterval(pintarDebug, 2000);
     }
+    // Al cerrar o recargar la página se vuelcan las cachés (el debounce de 5 s podría perder lo último).
+    raiz.addEventListener('pagehide', function () {
+      try { if (enriq) enriq.guardarAhora(); } catch (e) {}
+      try { if (horar) horar.guardarAhora(); } catch (e2) {}
+    });
     ['click', 'touchstart', 'keydown'].forEach(function (ev) {
       document.addEventListener(ev, function () { setTimeout(refrescarAvisoSonido, 150); }, true);
     });

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CONFIGURACIÓN · Tablero de vuelos</title>
+<style>
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: #000; color: #ddd; font-size: 18px; line-height: 1.35;
+         font-family: "Droid Sans Mono","Noto Sans Mono","Roboto Mono","DejaVu Sans Mono","Courier New",monospace; font-weight: 700;
+         padding: 12px 12px 190px; }
+  h1 { font-size: 22px; margin: 4px 0 4px; color: #FFC81E; }
+  .sub { color: #9A9A9A; font-size: 15px; margin: 0 0 14px; font-weight: 400; }
+  fieldset { border: 1px solid #3a3a3a; border-radius: 8px; margin: 0 0 16px; padding: 8px 12px 14px; min-width: 0; }
+  legend { color: #FFC81E; font-size: 18px; padding: 0 6px; text-transform: uppercase; letter-spacing: 1px; }
+  .campo { margin: 14px 0 0; }
+  .campo > label, .campo > .etq { display: block; color: #F2F2F2; margin-bottom: 6px; }
+  input[type=text], input[type=number], input[type=password], input[type=time], select, textarea {
+    width: 100%; min-height: 48px; font: inherit; font-size: 18px; color: #F2F2F2; background: #141414;
+    border: 2px solid #444; border-radius: 6px; padding: 8px 10px; }
+  textarea { min-height: 130px; font-size: 14px; font-weight: 400; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #FFC81E; }
+  .ayuda { color: #9A9A9A; font-size: 14px; font-weight: 400; margin-top: 4px; }
+  .defecto { color: #7a7a7a; font-size: 13px; font-weight: 400; margin-top: 2px; }
+  .err { color: #ff5a4d; font-size: 15px; margin-top: 4px; }
+  .aviso { color: #FFC81E; font-size: 14px; margin-top: 4px; font-weight: 400; }
+  .err:empty, .aviso:empty { display: none; }
+  button { font: inherit; font-size: 17px; min-height: 48px; padding: 8px 14px; border: 0; border-radius: 6px;
+           background: #FFC81E; color: #000; cursor: pointer; }
+  button:active { background: #fff; }
+  button[disabled] { background: #5a4a10; color: #222; }
+  .fila { display: flex; flex-wrap: wrap; margin: 0 -4px; }
+  .fila > * { margin: 4px; }
+  .fila.dos > * { flex: 1 1 40%; }
+  .cardinales > button { flex: 1 0 20%; padding: 8px 0; }
+  .campo-fila { display: flex; align-items: center; }
+  .campo-fila > input[type=password], .campo-fila > input[type=text] { flex: 1 1 auto; }
+  .campo-fila > button { flex: 0 0 auto; margin-left: 8px; }
+  .chk { display: flex; align-items: center; min-height: 48px; color: #F2F2F2; }
+  .chk input { width: 28px; height: 28px; margin: 0 12px 0 0; flex: 0 0 auto; accent-color: #FFC81E; }
+  .franja input[type=time] { flex: 1 1 40%; }
+  .prov { display: flex; align-items: center; min-height: 52px; border-bottom: 1px solid #222; }
+  .prov .nom { flex: 1 1 auto; color: #F2F2F2; }
+  .prov .chk { flex: 1 1 auto; min-height: 48px; }
+  .prov button { flex: 0 0 48px; margin-left: 6px; padding: 0; }
+  input[type=range] { width: 100%; height: 48px; accent-color: #FFC81E; }
+  .valor-vol { color: #FFC81E; font-size: 20px; }
+  .estado { color: #9A9A9A; font-size: 15px; font-weight: 400; margin-top: 6px; min-height: 1.35em; }
+  .estado:empty { display: none; }
+  .campo > div > button { margin-bottom: 10px; }
+  .estado.mal { color: #ff5a4d; }
+  .estado.bien { color: #8fe08f; }
+  .leyenda { font-size: 15px; font-weight: 400; color: #bbb; }
+  .leyenda b { color: #F2F2F2; }
+  #sin-ls { display: none; background: #5a0f0a; color: #fff; border: 3px solid #ff5a4d; padding: 16px; font-size: 22px; margin: 0 0 14px; border-radius: 8px; }
+  #pie { position: fixed; left: 0; right: 0; bottom: 0; background: #0a0a0a; border-top: 2px solid #FFC81E; padding: 8px 10px 10px; z-index: 10; }
+  #pie .fila { margin: 0 -4px; }
+  #pie #btn-guardar { flex: 1 1 100%; font-size: 20px; min-height: 54px; }
+  #pie #btn-volver, #pie #btn-restablecer { flex: 1 1 40%; background: #FFC81E; }
+  #msg { font-size: 15px; min-height: 0; padding: 0 4px; }
+  #msg.mal { color: #ff5a4d; } #msg.bien { color: #8fe08f; }
+  #msg:not(:empty) { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<h1>CONFIGURACIÓN</h1>
+<p class="sub" id="sub">Los cambios se guardan en este celu. Solo se guarda lo que difiere de los valores por defecto.</p>
+<div id="sin-ls"></div>
+<form id="formulario" onsubmit="return false" autocomplete="off"><div id="campos"></div></form>
+<div id="pie">
+  <div id="msg"></div>
+  <div class="fila">
+    <button type="button" id="btn-guardar">GUARDAR Y VOLVER</button>
+    <button type="button" id="btn-volver">VOLVER SIN GUARDAR</button>
+    <button type="button" id="btn-restablecer">RESTABLECER</button>
+  </div>
+</div>
+<script src="js/config.js?v=20261126a"></script>
+<script src="js/config.local.js?v=20261126a"></script>
+<script src="js/ajustes.js?v=20261126a"></script>
+<script src="js/beep-data.js?v=20261126a"></script>
+<script src="js/sonido.js?v=20261126a"></script>
+<script src="js/configuracion.js?v=20261126a"></script>
+</body>
+</html>

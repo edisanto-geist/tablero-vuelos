@@ -1,4 +1,5 @@
-// Configuración del tablero. Para cambios propios usá config.local.js (no se sube al repo):
+// Configuración del tablero. Prioridad: config.js < config.local.js < ajustes del celu (config.html, 5 toques) < parámetros de URL.
+// Para cambios propios usá config.local.js (no se sube al repo):
 //   Object.assign(CONFIG, { LAT: -32.85, LON: -60.78 });
 // OJO: Object.assign es superficial. Los ajustes anidados se escriben así (no pisar LIMITES entero):
 //   CONFIG.LIMITES.opensky = { REPOSO_S: 60, ACTIVO_S: 20, CUPO_DIARIO: 4000 };  // OpenSky con cuenta
@@ -14,6 +15,7 @@ window.CONFIG = {
   REBEEP_VUELO_S: 300,
   FILAS_POR_PAGINA: 2,
   SEGUNDOS_POR_PAGINA: 8,
+  ALTERNAR_L3_S: 4,                  // la 3ª línea alterna datos técnicos / horarios; 0 = no alterna (siempre datos técnicos)
   UNIDAD_ALTITUD: 'm',
   ORIENTACION_PANTALLA_DEG: 0,
   DIST_ENCIMA_KM: 2,
@@ -36,6 +38,13 @@ window.CONFIG = {
   PROXY_NUBE: 'https://tablero-vuelos-proxy.edisanto.workers.dev/api/', // cloudflare/worker.js
   OPENSKY_CLIENT_ID: '', OPENSKY_CLIENT_SECRET: '',
   ADSBLOL_KEY: '',
+  HORARIOS_KEY: '',                  // sensible: va en config.local.js o se carga en el celu desde config.html, nunca en el repo
+  HORARIOS_MODO: 'calc',             // 'no' | 'calc' (calculado, con ~) | 'api' (AeroAPI, solo vía proxy)
+  HORARIOS_API: 'aeroapi',
+  HORARIOS_CUPO_DIARIO: 30,
+  HORARIOS_SOLO_LOCAL: false,
+  HORARIOS_ESPACIADO_MS: 6500,       // AeroAPI Personal: 10 result sets/min
+  ZONA_UTC_MIN: -180,                // Argentina UTC-3, sin Intl
   ENRIQUECER: true,
   ENRIQ_ESPACIADO_MS: 1000,
   ENRIQ_MAX_POR_TICK: 8,

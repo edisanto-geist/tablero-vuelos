@@ -6,6 +6,8 @@
 //         GET /api/salud                      → {"ok":true}
 // Solo acepta los servicios de BASES y pedidos desde los orígenes de ORIGENES (para no ser un proxy abierto).
 // Credenciales opcionales (secrets del Worker): ADSBLOL_KEY, OPENSKY_CLIENT_ID, OPENSKY_CLIENT_SECRET.
+// Horarios (FlightAware AeroAPI): secret AEROAPI_KEY; sin él, /api/aeroapi/ responde 401. Los headers X-TV-* del
+// navegador se ignoran siempre: las claves de la nube viven solo en los secrets.
 
 const BASES = {
   airplaneslive: 'https://api.airplanes.live/v2/',
@@ -13,6 +15,7 @@ const BASES = {
   adsblol: 'https://api.adsb.lol/',
   opensky: 'https://opensky-network.org/api/',
   adsbdb: 'https://api.adsbdb.com/v0/',
+  aeroapi: 'https://aeroapi.flightaware.com/aeroapi/',
 };
 
 // Rutas permitidas por servicio (solo lo que usa el tablero).
@@ -22,7 +25,22 @@ const PERMITIDAS = {
   adsblol: /^v2\/(point\/-?\d+(\.\d+)?\/-?\d+(\.\d+)?\/\d+(\.\d+)?|lat\/-?\d+(\.\d+)?\/lon\/-?\d+(\.\d+)?\/dist\/\d+(\.\d+)?)$/,
   opensky: /^states\/all$/,
   adsbdb: /^(callsign\/[A-Za-z0-9]{2,10}|aircraft\/~?[A-Fa-f0-9]{6})$/,
+  aeroapi: /^flights\/[A-Z0-9]{3,8}$/,
 };
+
+const RE_FECHA_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
+
+// De la query solo se conserva lo que usa el tablero. Para aeroapi: ident_type=designator y start/end con formato ISO sin milisegundos.
+function queryPermitida(servicio, search) {
+  if (servicio !== 'aeroapi') return search.slice(1);
+  const p = new URLSearchParams(search);
+  const out = ['ident_type=designator'];
+  ['start', 'end'].forEach((k) => {
+    const v = p.get(k);
+    if (v && RE_FECHA_ISO.test(v)) out.push(k + '=' + encodeURIComponent(v));
+  });
+  return out.join('&');
+}
 
 const ORIGENES = [
   'https://edisanto-geist.github.io',
@@ -32,7 +50,7 @@ const ORIGENES = [
 ];
 
 // Cache en el borde: las posiciones cambian rápido; rutas y tipos casi nunca.
-const CACHE_S = { airplaneslive: 5, adsbfi: 5, adsblol: 5, opensky: 5, adsbdb: 6 * 3600 };
+const CACHE_S = { airplaneslive: 5, adsbfi: 5, adsblol: 5, opensky: 5, adsbdb: 6 * 3600, aeroapi: 600 };
 
 const PASAR = ['Retry-After', 'X-Rate-Limit-Remaining', 'X-Rate-Limit-Retry-After-Seconds'];
 const AUTH_OPENSKY = 'https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token';
@@ -80,6 +98,7 @@ async function pedirUpstream(servicio, resto, query, env, reintento) {
   const url = BASES[servicio] + resto + (query ? '?' + query : '');
   const h = { 'User-Agent': 'tablero-vuelos/1.0 (uso personal)', Accept: 'application/json' };
   if (servicio === 'adsblol' && env.ADSBLOL_KEY) h['x-api-key'] = env.ADSBLOL_KEY;
+  if (servicio === 'aeroapi') h['x-apikey'] = env.AEROAPI_KEY;
   if (servicio === 'opensky') {
     const tk = await obtenerTokenOpensky(env, false);
     if (tk) h.Authorization = 'Bearer ' + tk;
@@ -110,9 +129,11 @@ export default {
     if (!BASES[servicio]) return json(404, { error: 'servicio desconocido' }, origen);
     if (!PERMITIDAS[servicio].test(ruta)) return json(400, { error: 'ruta no permitida' }, origen);
 
+    if (servicio === 'aeroapi' && !env.AEROAPI_KEY) return json(401, { error: 'sin clave de horarios' }, origen);
+
     let r;
     try {
-      r = await pedirUpstream(servicio, ruta, u.search.slice(1), env, true);
+      r = await pedirUpstream(servicio, ruta, queryPermitida(servicio, u.search), env, true);
     } catch (e) {
       return json(502, { error: String((e && e.message) || e) }, origen);
     }

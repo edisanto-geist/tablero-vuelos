@@ -33,12 +33,18 @@ function crearTransporte(tabla) {
 }
 
 // Objeto con la forma mínima que usa Enriquecer: {url(servicio, ruta), pedirJSON(opts)}.
-function crearRedFalsa(tabla) {
+// opciones.proxyBase: lo que devuelve proxyBase() (por defecto '/api/', como con el proxy de Termux; '' = sin proxy).
+function crearRedFalsa(tabla, opciones) {
   var transporte = crearTransporte(tabla);
+  var proxy = opciones && opciones.proxyBase !== undefined ? opciones.proxyBase : '/api/';
   return {
     transporte: transporte,
     llamadas: transporte.llamadas,
-    url: function (servicio, ruta) { return 'https://api.adsbdb.com/v0/' + ruta; },
+    proxyBase: function () { return proxy; },
+    url: function (servicio, ruta) {
+      if (servicio === 'aeroapi') return (proxy ? proxy + 'aeroapi/' : 'https://aeroapi.flightaware.com/aeroapi/') + ruta;
+      return 'https://api.adsbdb.com/v0/' + ruta;
+    },
     pedirJSON: function (opts) {
       var t0 = Date.now();
       return transporte(opts).then(function (r) {

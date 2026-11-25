@@ -10,6 +10,9 @@
   var filas = [];                // [{raiz, campos:{nombre:[celdas]}, ...}]
   var sinSonido = false;
   var visible = false;
+  var vistaL3 = 'a', timerL3 = null;       // L3 alterna entre la vista A (datos técnicos) y la B (horarios)
+  var GRUPO_A = ['aerolinea', 'tipo', 'altitud', 'estado'];
+  var GRUPO_B = ['salida', 'eta', 'estado2'];
 
   function aleatorio() { return ABC.charAt(Math.floor(Math.random() * ABC.length)); }
   function mostrarCh(ch) { return ch === ' ' ? ' ' : ch; }
@@ -83,6 +86,13 @@
   // --- filas --------------------------------------------------------------
   function sep(padre) { return mk('span', 'sep', padre); }
 
+  function conHorarios() { return cfg.HORARIOS_MODO !== 'no'; }
+  // Alterna automáticamente salvo que ALTERNAR_L3_S sea 0 o la URL fuerce una vista (l3=a|b).
+  function forzadaL3() { return cfg.L3_VISTA === 'a' || cfg.L3_VISTA === 'b'; }
+  function segundosL3() {
+    return (typeof cfg.ALTERNAR_L3_S === 'number' && cfg.ALTERNAR_L3_S >= 0) ? cfg.ALTERNAR_L3_S : 4;
+  }
+
   function construirFila(tipo) {
     var f = { campos: {} };
     var r = f.raiz = mk('div', 'fila');
@@ -106,8 +116,14 @@
       f.campos.altitud = crearCampo(b, 'altitud', 9);
       sep(b);
       f.campos.estado = crearCampo(b, 'estado', 14);
+      if (conHorarios()) {
+        var c = mk('div', 'linea l3 l3c', r);
+        f.campos.salida = crearCampo(c, 'salida', 11);
+        sep(c);
+        f.campos.eta = crearCampo(c, 'eta', 11);
+      }
     } else {
-      var l3 = mk('div', 'linea l3', r);
+      var l3 = mk('div', 'linea l3 l3a', r);
       f.campos.aerolinea = crearCampo(l3, 'aerolinea', 11);
       sep(l3);
       f.campos.tipo = crearCampo(l3, 'tipo', 4);
@@ -115,6 +131,14 @@
       f.campos.altitud = crearCampo(l3, 'altitud', 9);
       sep(l3);
       f.campos.estado = crearCampo(l3, 'estado', 14);
+      if (conHorarios()) {
+        var l3b = mk('div', 'linea l3 l3b', r);
+        f.campos.salida = crearCampo(l3b, 'salida', 11);
+        sep(l3b);
+        f.campos.eta = crearCampo(l3b, 'eta', 11);
+        sep(l3b);
+        f.campos.estado2 = crearCampo(l3b, 'estado2', 14);
+      }
     }
     f.angulo = null;
     f.icao = undefined;
@@ -124,8 +148,13 @@
   function poblarFila(f, v, modoCambio) {
     var vacio = !v;
     var t = vacio ? null : raiz.Formato.fila(v, cfg);
+    if (t) t.estado2 = t.estado;
+    f.t = t;
     Object.keys(f.campos).forEach(function (k) {
       poner(f.campos[k], vacio ? '' : t[k], modoCambio);
+    });
+    ['salida', 'eta'].forEach(function (k) {   // color: real/est en blanco, prog/calc/vacío en gris
+      if (f.campos[k]) f.campos[k].className = 'campo c-' + k + (t && t[k + 'Tipo'] ? ' t-' + t[k + 'Tipo'] : '');
     });
     // Insignia (solo se reconstruye si cambió la aerolínea)
     var clave = vacio ? '' : (v.aerolinea ? v.aerolinea.icao : '-');
@@ -182,6 +211,15 @@
   function detenerTimers() {
     if (timerPagina) { clearInterval(timerPagina); timerPagina = null; }
     if (timerReloj) { clearInterval(timerReloj); timerReloj = null; }
+    if (timerL3) { clearInterval(timerL3); timerL3 = null; }
+  }
+
+  function reiniciarTimerL3() {
+    if (timerL3) { clearInterval(timerL3); timerL3 = null; }
+    var s = segundosL3();
+    if (s > 0 && !forzadaL3() && conHorarios() && modo === 'normal') {
+      timerL3 = setInterval(function () { cambiarVistaL3(vistaL3 === 'a' ? 'b' : 'a'); }, s * 1000);
+    }
   }
 
   function limpiarCuerpo() {
@@ -197,11 +235,15 @@
     if (np > 1 && !timerPagina) {
       timerPagina = setInterval(function () {
         pagina = (pagina + 1) % paginas();
+        vistaL3 = forzadaL3() ? cfg.L3_VISTA : 'a';   // cada página arranca en la vista A
+        reiniciarTimerL3();
         dibujar('pagina');
       }, cfg.SEGUNDOS_POR_PAGINA * 1000);
     } else if (np <= 1 && timerPagina) {
       clearInterval(timerPagina); timerPagina = null;
     }
+    if (!timerL3 && modo === 'normal') reiniciarTimerL3();
+    if (modo !== 'normal' && timerL3) { clearInterval(timerL3); timerL3 = null; }
   }
 
   function dibujar(modoCambio) {
@@ -211,6 +253,7 @@
     if (nuevoModo !== modo || filas.length !== nFilas) {
       limpiarCuerpo();
       modo = nuevoModo;
+      vistaL3 = forzadaL3() ? cfg.L3_VISTA : 'a';
       el.tablero.className = (modo === 'uno' ? 'uno ' : '') + (cfg.FILAS_POR_PAGINA >= 3 ? 'f3' : 'f2') + ' visible';
       for (var i = 0; i < nFilas; i++) {
         var f = construirFila(modo);
@@ -224,8 +267,34 @@
       poblarFila(filas[j], v, modoCambio);
       filas[j].raiz.className = 'fila' + (v ? '' : ' vacia');
     }
+    aplicarClasesL3();
     el.cuerpo.className = '';
     actualizarEncabezado();
+  }
+
+  // La vista B solo se ve en las filas que tienen algún horario; el resto se queda en A.
+  function filaEnB(f) { return vistaL3 === 'b' && modo === 'normal' && !!(f.t && f.t.hayHorarios); }
+  function aplicarClasesL3() {
+    for (var j = 0; j < filas.length; j++) {
+      var f = filas[j];
+      var vacia = /(^| )vacia( |$)/.test(f.raiz.className);
+      f.raiz.className = 'fila' + (vacia ? ' vacia' : '') + (filaEnB(f) ? ' vb' : '');
+    }
+  }
+
+  // Cambia la vista de L3 con flap de página en los campos que quedan visibles.
+  function cambiarVistaL3(nueva) {
+    if (nueva === vistaL3) return;
+    vistaL3 = nueva;
+    aplicarClasesL3();
+    if (!cfg.ANIMAR) return;
+    for (var j = 0; j < filas.length; j++) {
+      var f = filas[j];
+      if (!f.t || !f.t.hayHorarios) continue;
+      (nueva === 'b' ? GRUPO_B : GRUPO_A).forEach(function (k) {
+        if (f.campos[k]) poner(f.campos[k], f.t[k], 'pagina');
+      });
+    }
   }
 
   function mostrarEstructura() {
@@ -243,6 +312,7 @@
       el.pagina = document.getElementById('pagina');
       el.reloj = document.getElementById('reloj');
       el.cuerpo = document.getElementById('cuerpo');
+      vistaL3 = forzadaL3() ? cfg.L3_VISTA : 'a';
       el.titulo.textContent = 'CIELO DE ' + cfg.NOMBRE_LUGAR + ' · ' + cfg.RADIO_KM + ' KM';
     },
     // Dibuja la lista de vuelos (ya filtrada y ordenada). Se llama en cada tick con aviones.
@@ -290,7 +360,7 @@
       var malos = [];
       if (!visible) return malos;
       var W = window.innerWidth, H = window.innerHeight;
-      var sel = el.tablero.querySelectorAll('.linea, .fila, .campo, #encabezado');
+      var sel = el.tablero.querySelectorAll('.linea, .l3a, .l3b, .l3c, .fila, .campo, #encabezado');
       for (var i = 0; i < sel.length; i++) {
         var e = sel[i], r = e.getBoundingClientRect();
         var fuera = r.right > W + 0.5 || r.left < -0.5 || r.bottom > H + 0.5;

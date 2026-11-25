@@ -137,3 +137,11 @@ body.reposo #tablero { display: none; }
   border-top: 0.11em solid currentColor; border-right: 0.11em solid currentColor;
   -webkit-transform: rotate(45deg); transform: rotate(45deg);
 }
+
+/* ---- L3 alterna entre la vista A (datos técnicos) y la B (horarios) ---- */
+.fila .l3b { display: none; }
+.fila.vb .l3a { display: none; }
+.fila.vb .l3b { display: flex; }
+.c-salida, .c-eta { color: #9A9A9A; }
+.c-salida.t-real, .c-salida.t-est, .c-eta.t-real, .c-eta.t-est { color: #F2F2F2; }
+.c-salida.t-prog, .c-salida.t-calc, .c-eta.t-prog, .c-eta.t-calc { color: #9A9A9A; }
