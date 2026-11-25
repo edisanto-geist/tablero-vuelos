@@ -13,6 +13,11 @@
 
   function aleatorio() { return ABC.charAt(Math.floor(Math.random() * ABC.length)); }
   function mostrarCh(ch) { return ch === ' ' ? ' ' : ch; }
+  // La flecha de la ruta se dibuja con CSS: el carácter → no está bien en todas las fuentes monoespaciadas de Android.
+  function pintar(celda, ch) {
+    if (ch === '→') { celda.textContent = ''; celda.classList.add('cf'); }
+    else { celda.classList.remove('cf'); celda.textContent = mostrarCh(ch); }
+  }
 
   function mk(tag, clase, padre) {
     var e = document.createElement(tag);
@@ -49,7 +54,7 @@
         celda.classList.add('flap');
         setTimeout(function () {
           if (g !== gen || celda._t !== tok) return;
-          celda.textContent = mostrarCh(ch);
+          pintar(celda, ch);
         }, DURACION_FLAP / 2);
         setTimeout(function () {
           if (celda._t === tok) celda.classList.remove('flap');
@@ -65,7 +70,7 @@
       var ch = i < texto.length ? texto.charAt(i) : ' ';
       var c = celdas[i];
       if (!cfg.ANIMAR) {
-        c._t++; c._ch = ch; c.textContent = mostrarCh(ch);
+        c._t++; c._ch = ch; pintar(c, ch);
       } else if (modoCambio === 'pagina') {
         if (c._ch === ' ' && ch === ' ') continue;
         secuencia(c, [aleatorio(), aleatorio(), ch], i * ESCALONADO);

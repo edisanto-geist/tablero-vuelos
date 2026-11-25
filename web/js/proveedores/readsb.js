@@ -29,7 +29,8 @@
         if (!a || typeof a !== 'object') continue;
         var seen = num(a.seen_pos);
         if (seen !== null && seen > maxEdad) continue;
-        var cs = limpiar(a.flight);
+        // readsb rellena con '@' los caracteres de callsign que no recibió (ej. '@@@@@@@@'): se descartan
+        var cs = limpiar(a.flight).toUpperCase().replace(/[^A-Z0-9]/g, '');
         var mat = limpiar(a.r);
         var tipo = limpiar(a.t).toUpperCase();
         var enTierra = false, alt;
