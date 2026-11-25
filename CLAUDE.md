@@ -46,7 +46,8 @@ Flujo base:
 
 ## Fuentes de datos
 
-- **Principal: airplanes.live** (`https://api.airplanes.live/v2/point/{lat}/{lon}/{nm}`, formato readsb/ADSBx v2).
+- **Principal: adsb.fi** (probado en el celu el 25/11/2026: airplanes.live da 403 a no-feeders; adsb.fi, adsb.lol y OpenSky responden desde el WiFi de casa pero adsb.fi y OpenSky NO desde Cloudflare).
+- Antes principal: airplanes.live (`https://api.airplanes.live/v2/point/{lat}/{lon}/{nm}`, formato readsb/ADSBx v2).
   1 consulta por segundo, sin key ni cupo diario, uso no comercial. Trae `t` (tipo de avión) y matrícula.
 - **Fallbacks, en orden (`CONFIG.PROVEEDORES`):** adsb.fi (cita obligatoria, v3), adsb.lol (500 consultas/día sin key,
   ODbL) y **OpenSky** (`/api/states/all` con bounding box) como último recurso. `Fuentes` (`web/js/fuentes.js`) maneja

@@ -20,7 +20,7 @@ window.CONFIG = {
   INCLUIR_EN_TIERRA: false,
   ANIMAR: true,
   PROVEEDOR: 'auto',                 // 'auto' = usa PROVEEDORES en orden con fallback; o un nombre fijo (sin fallback)
-  PROVEEDORES: ['airplaneslive', 'adsbfi', 'adsblol', 'opensky'],
+  PROVEEDORES: ['adsbfi', 'adsblol', 'opensky', 'airplaneslive'], // prueba en el celu (25/11/2026): airplanes.live da 403 y adsb.fi anda
   INTERVALO_REPOSO_S: 20,
   INTERVALO_ACTIVO_S: 10,            // se usa en ACTIVO y ESPERA
   FRANJA_LENTA: { desde: '01:00', hasta: '05:30', INTERVALO_S: 60 },   // solo en REPOSO; null = desactivada
