@@ -100,6 +100,8 @@ body.reposo #tablero { display: none; }
 .insignia .iata { font-size: 0.55em; letter-spacing: -0.02em; }
 .insignia.generica { background: #222; padding: 0.12em; }
 .insignia img.logo-png { width: 100%; height: 100%; object-fit: contain; }
+/* los logos vienen pensados para fondo claro: van sobre una placa blanca, como en los tableros de aeropuerto */
+.insignia.con-logo { background: #FFF; padding: 0.07em; }
 .flecha { display: inline-block; flex: none; width: 1em; height: 1em; margin-right: 0.3em; }
 .flecha svg { display: none; width: 100%; height: 100%; }
 .f-flecha { -webkit-transition: -webkit-transform 600ms ease-in-out; transition: transform 600ms ease-in-out; }

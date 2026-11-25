@@ -17,7 +17,7 @@
   var campos = {};      // ruta -> {desc, leer(), escribir(v), err, aviso}
   var orden = [];
   var timerInactividad = null;
-  var cfgPrueba = { VOLUMEN: 0.8, HORARIO_SILENCIO: null, RUTA_BEEP: 'beep.mp3' };
+  var cfgPrueba = { VOLUMEN: 0.8, HORARIO_SILENCIO: null, RUTA_BEEP: 'beep.mp3', SONIDO: (raiz.CONFIG && raiz.CONFIG.SONIDO) || 'dingdong' };
 
   // ---------- utilidades DOM ----------
   function el(tag, props, hijos) {
@@ -345,6 +345,7 @@
     var est = el('div', { clase: 'estado' });
     var b = boton('PROBAR BEEP', function () {
       if (!raiz.Sonido) { estadoEn(est, 'No se cargó el módulo de sonido.', 'mal'); return; }
+      try { if (campos.SONIDO) cfgPrueba.SONIDO = campos.SONIDO.leer(); } catch (e) { /* nada */ }
       try { raiz.Sonido.init(cfgPrueba); } catch (e) { /* nada */ }
       raiz.Sonido.desbloquear().then(function () { return raiz.Sonido.beep(); }).then(function (r) {
         estadoEn(est, 'Resultado: ' + String(r).toUpperCase(), (r === 'silencio' || r === 'bloqueado') ? 'mal' : 'bien');

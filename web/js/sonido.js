@@ -10,7 +10,7 @@
 (function (raiz) {
   'use strict';
 
-  var DEFAULTS = { VOLUMEN: 0.8, HORARIO_SILENCIO: null, RUTA_BEEP: 'beep.mp3' };
+  var DEFAULTS = { VOLUMEN: 0.8, HORARIO_SILENCIO: null, RUTA_BEEP: 'beep.mp3', SONIDO: 'dingdong' };
   var EVENTOS_GESTO = ['pointerdown', 'touchstart', 'keydown', 'click'];
   var MIN_ENTRE_BEEPS_MS = 300;
   var ESPERA_RESUME_MS = 300;
@@ -22,6 +22,21 @@
   var audioEl = null;
   var audioCebado = false;
   var ultimoBeepMs = 0;
+  var sonidoCargado = null;     // qué CONFIG.SONIDO está decodificado / en el <audio>
+
+  // CONFIG.SONIDO: 'dingdong' | 'chime' | 'sintetico' (web/sonidos/<nombre>.mp3; sintetico = beep.mp3)
+  function sonidoElegido() {
+    var n = String(leer('SONIDO') || 'sintetico');
+    return (raiz.BEEP_SONIDOS && raiz.BEEP_SONIDOS[n]) ? n : 'sintetico';
+  }
+  function base64Elegido() {
+    var n = sonidoElegido();
+    return (raiz.BEEP_SONIDOS && raiz.BEEP_SONIDOS[n]) || raiz.BEEP_MP3_BASE64 || null;
+  }
+  function rutaElegida() {
+    var n = sonidoElegido();
+    return n === 'sintetico' ? leer('RUTA_BEEP') : 'sonidos/' + n + '.mp3';
+  }
 
   // La config puede traer FORZAR ('webaudio' | 'audio' | 'osc') solo para pruebas;
   // en el tablero real no se define.
@@ -77,8 +92,10 @@
 
   function decodificarBuffer() {
     try {
-      if (!ctx || !raiz.BEEP_MP3_BASE64) return;
-      ctx.decodeAudioData(decodificarBase64(raiz.BEEP_MP3_BASE64),
+      sonidoCargado = sonidoElegido();
+      var b64 = base64Elegido();
+      if (!ctx || !b64) return;
+      ctx.decodeAudioData(decodificarBase64(b64),
         function (b) { buffer = b; },
         function () { buffer = null; });
     } catch (e) {
@@ -89,7 +106,7 @@
   function crearAudio() {
     try {
       if (typeof raiz.Audio !== 'function') return;
-      audioEl = new raiz.Audio(leer('RUTA_BEEP'));
+      audioEl = new raiz.Audio(rutaElegida());
       audioEl.preload = 'auto';
     } catch (e) {
       audioEl = null;
@@ -174,11 +191,22 @@
     } catch (e) { /* nada */ }
   }
 
+  // Si cambió CONFIG.SONIDO (ej. desde config.html), decodifica el nuevo y rehace el <audio>.
+  function recargarSiCambio() {
+    try {
+      if (sonidoCargado === sonidoElegido()) return;
+      buffer = null;
+      decodificarBuffer();
+      crearAudio();
+      audioCebado = false;
+    } catch (e) { /* nunca tira */ }
+  }
+
   function init(config) {
     try {
       if (config) cfg = config;
       else if (!cfg) cfg = raiz.CONFIG || DEFAULTS;
-      if (iniciado) return;
+      if (iniciado) { recargarSiCambio(); return; }
       iniciado = true;
       crearContexto();
       decodificarBuffer();
@@ -295,6 +323,7 @@
         if (ultimoBeepMs && ahora - ultimoBeepMs < MIN_ENTRE_BEEPS_MS) return fin('ignorado');
         ultimoBeepMs = ahora;
         if (volumen() <= 0 || enHorarioSilencio()) return fin('silencio');
+        recargarSiCambio();
         beepInterno().then(fin, function () { fin('error'); });
       } catch (e) {
         fin('error');

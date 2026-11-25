@@ -108,6 +108,14 @@ def main():
         f.write('// ARCHIVO GENERADO por scripts/generar_beep.py. No editar a mano.\n')
         f.write('// Es web/beep.mp3 en base64, para poder reproducirlo desde file:// sin fetch.\n')
         f.write('window.BEEP_MP3_BASE64 = "%s";\n' % b64)
+        # Sonidos alternativos de web/sonidos/*.mp3 (CONFIG.SONIDO elige cuál). 'sintetico' es web/beep.mp3.
+        carpeta = os.path.join(RAIZ, 'web', 'sonidos')
+        f.write('window.BEEP_SONIDOS = { sintetico: window.BEEP_MP3_BASE64 };\n')
+        if os.path.isdir(carpeta):
+            for nombre in sorted(os.listdir(carpeta)):
+                if nombre.endswith('.mp3'):
+                    with open(os.path.join(carpeta, nombre), 'rb') as g:
+                        f.write('window.BEEP_SONIDOS[%r] = "%s";\n' % (nombre[:-4], base64.b64encode(g.read()).decode('ascii')))
 
     print('Muestras: %d a %d Hz = %.3f s' % (len(muestras), SR, len(muestras) / SR))
     print('MP3: %s (%d bytes)' % (RUTA_MP3, len(datos)))

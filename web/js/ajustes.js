@@ -37,11 +37,13 @@
     d('ALTERNAR_L3_S', G[2], 'Alternar datos cada (s)', 'entero', { min: 0, max: 30, paso: 1 }, 'La 3ª línea alterna entre datos técnicos y horarios. 0 = no alterna.'),
     d('ANIMAR', G[2], 'Animación flap', 'bool', null, 'El efecto de letras que giran. Apagalo si el celu va lento.'),
     d('UNIDAD_ALTITUD', G[2], 'Unidad de altitud', 'enum', { opciones: ['m', 'ft'] }, 'Metros o pies.'),
+    d('USAR_LOGOS_PNG', G[2], 'Mostrar logos de aerolíneas', 'bool', null, 'Si no hay logo, muestra la cajita de color con el código.'),
     d('TIMEOUT_SIN_AVIONES_S', G[2], 'Apagar tras (s) sin aviones', 'entero', { min: 20, max: 1800, paso: 10 }, 'Después de este tiempo vuelve a negro.'),
     d('INCLUIR_EN_TIERRA', G[2], 'Mostrar aviones en tierra', 'bool', null, 'Incluye los que están carreteando o estacionados.'),
     d('DIST_ENCIMA_KM', G[2], 'Distancia "encima" (km)', 'num', { min: 0.5, max: 10, paso: 0.5, dec: 1 }, 'Dentro de esta distancia dice SOBRE TU CASA.'),
     // Sonido
     d('VOLUMEN', G[3], 'Volumen', 'num', { min: 0, max: 1, paso: 0.05, dec: 2 }, '0 = mudo, 1 = al máximo.'),
+    d('SONIDO', G[3], 'Sonido', 'enum', { opciones: ['dingdong', 'chime', 'sintetico'] }, 'dingdong = campanita de cabina de avión; chime = campanita suave; sintetico = el beep generado.'),
     d('HORARIO_SILENCIO', G[3], 'Horario de silencio', 'franja', null, 'En esta franja no suena el beep (el tablero sigue funcionando).'),
     d('BEEP_MIN_ENTRE_S', G[3], 'Mínimo entre beeps (s)', 'entero', { min: 0, max: 600, paso: 1 }, 'Para que no suene seguido.'),
     d('REBEEP_VUELO_S', G[3], 'Repetir beep del mismo vuelo (s)', 'entero', { min: 30, max: 3600, paso: 10 }, 'Si el mismo avión sigue en el radio, vuelve a sonar pasado este tiempo.'),

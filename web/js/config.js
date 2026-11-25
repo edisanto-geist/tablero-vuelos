@@ -49,7 +49,9 @@ window.CONFIG = {
   ENRIQ_ESPACIADO_MS: 1000,
   ENRIQ_MAX_POR_TICK: 8,
   RUTA_BEEP: 'beep.mp3',
-  RUTA_LOGOS: 'logos/', USAR_LOGOS_PNG: false,
+  SONIDO: 'dingdong',                // 'dingdong' (cabina de avión) | 'chime' | 'sintetico' (web/sonidos/*.mp3; sintetico = beep.mp3)
+  RUTA_LOGOS: 'logos/', USAR_LOGOS_PNG: true, // logos locales: web/logos/<IATA>.png (los baja termux/bajar_logos.py)
+  LOGOS_URL: 'https://content.r9cdn.net/rimg/provider-logos/airlines/v/{IATA}.png', // si no hay local; '' = no usar
   APAGAR_PANTALLA_FISICA: false,
   DEMO: { INTERVALO_CONSULTA_S: 2, TIMEOUT_SIN_AVIONES_S: 20, REBEEP_VUELO_S: 60,
           ACELERACION: 4, CICLO_S: 180, T_INICIAL_S: 0 }

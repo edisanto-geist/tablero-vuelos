@@ -5,3 +5,6 @@ __pycache__/
 *.pyc
 .DS_Store
 termux/credenciales.json
+
+# logos de aerolíneas: se bajan en el celu (termux/bajar_logos.py), no se suben
+web/logos/*.png
