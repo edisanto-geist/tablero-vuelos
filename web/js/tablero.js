@@ -1,8 +1,10 @@
 // Render del tablero: filas con celdas split-flap, paginado, reloj y pantalla "sin tráfico".
 (function (raiz) {
   var ABC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  var DURACION_FLAP = 180;       // ms de una vuelta de celda
+  var DURACION_FLAP = 90;        // ms de una vuelta de paleta (cae la mitad de arriba + llega la de abajo); ver .gira en el CSS
   var ESCALONADO = 15;           // ms de retraso por índice de celda al cambiar de página
+  var GIROS_MIN = 3, GIROS_MAX = 9;   // letras al azar antes de asentarse (cada celda hace una cantidad distinta)
+  var DESFASE_AZAR = 140;        // ms extra al azar por celda: el tablero se acomoda de forma irregular
 
   var cfg, el = {}, gen = 0;
   var vuelos = [], pagina = 0, timerPagina = null, timerReloj = null;
@@ -17,10 +19,13 @@
   function aleatorio() { return ABC.charAt(Math.floor(Math.random() * ABC.length)); }
   function mostrarCh(ch) { return ch === ' ' ? ' ' : ch; }
   // La flecha de la ruta se dibuja con CSS: el carácter → no está bien en todas las fuentes monoespaciadas de Android.
+  // Se escribe en el nodo de texto propio de la celda (no en textContent) para no borrar las hojas de la paleta.
   function pintar(celda, ch) {
-    if (ch === '→') { celda.textContent = ''; celda.classList.add('cf'); }
-    else { celda.classList.remove('cf'); celda.textContent = mostrarCh(ch); }
+    celda._vis = ch;
+    if (ch === '→') { celda._txt.nodeValue = ''; celda.classList.add('cf'); }
+    else { celda.classList.remove('cf'); celda._txt.nodeValue = mostrarCh(ch); }
   }
+  function chHoja(ch) { return ch === '→' ? '' : mostrarCh(ch); }
 
   function mk(tag, clase, padre) {
     var e = document.createElement(tag);
@@ -36,7 +41,9 @@
     for (var i = 0; i < n; i++) {
       var c = mk('span', 'celda', campo);
       c.textContent = ' ';
+      c._txt = c.firstChild;
       c._ch = ' ';
+      c._vis = ' ';
       c._t = 0;
       celdas.push(c);
     }
@@ -44,26 +51,58 @@
     return campo;
   }
 
-  // Lleva una celda por una secuencia de caracteres, un flap por carácter.
+  // Hojas de la paleta (se crean la primera vez que gira la celda y se reusan):
+  //   sup  = mitad de arriba de la letra vieja, cae hacia adelante
+  //   tapa = mitad de abajo de la letra vieja, queda quieta hasta que llega la nueva
+  //   inf  = mitad de abajo de la letra nueva, baja y se apoya
+  // Detrás queda la letra nueva entera (el texto de la celda), que se ve arriba cuando cae "sup".
+  function hojas(celda) {
+    if (celda._h) return celda._h;
+    var h = {};
+    ['tapa', 'sup', 'inf'].forEach(function (k) {
+      var hoja = mk('span', 'hoja h-' + k, celda);
+      h[k] = mk('span', 'hoja-t', hoja);
+    });
+    celda._h = h;
+    return h;
+  }
+  function reposar(celda) {
+    celda.classList.remove('gira');
+    if (celda._h) { celda._h.sup.textContent = ''; celda._h.tapa.textContent = ''; celda._h.inf.textContent = ''; }
+  }
+  function girar(celda, nuevo) {
+    var h = hojas(celda), viejo = celda._vis;
+    h.sup.textContent = chHoja(viejo);
+    h.tapa.textContent = chHoja(viejo);
+    h.inf.textContent = chHoja(nuevo);
+    pintar(celda, nuevo);
+    celda.classList.remove('gira');
+    void celda.offsetWidth;               // reinicia la animación
+    celda.classList.add('gira');
+  }
+
+  // Lleva una celda por una secuencia de caracteres, un giro de paleta por carácter.
   function secuencia(celda, chars, retardo) {
     var tok = ++celda._t;
     var g = gen;
+    var i = 0;
     celda._ch = chars[chars.length - 1];
-    chars.forEach(function (ch, i) {
-      setTimeout(function () {
-        if (g !== gen || celda._t !== tok) return;
-        celda.classList.remove('flap');
-        void celda.offsetWidth;               // reinicia la animación
-        celda.classList.add('flap');
-        setTimeout(function () {
-          if (g !== gen || celda._t !== tok) return;
-          pintar(celda, ch);
-        }, DURACION_FLAP / 2);
-        setTimeout(function () {
-          if (celda._t === tok) celda.classList.remove('flap');
-        }, DURACION_FLAP + 20);
-      }, retardo + i * DURACION_FLAP);
-    });
+    function paso() {
+      if (g !== gen || celda._t !== tok) return;
+      girar(celda, chars[i++]);
+      if (i < chars.length) setTimeout(paso, DURACION_FLAP);
+      else setTimeout(function () { if (celda._t === tok) reposar(celda); }, DURACION_FLAP + 20);
+    }
+    setTimeout(paso, retardo);
+  }
+
+  // Varias letras al azar (cantidad distinta en cada celda) y al final la letra que corresponde.
+  function letrasAlAzar(final) {
+    var n = GIROS_MIN + Math.floor(Math.random() * (GIROS_MAX - GIROS_MIN + 1));
+    var out = [];
+    for (var k = 0; k < n; k++) out.push(aleatorio());
+    out.push(final);
+    return out;
   }
 
   // modoCambio: 'tick' (solo las celdas distintas) | 'pagina' (todas, con letras al azar)
@@ -73,10 +112,10 @@
       var ch = i < texto.length ? texto.charAt(i) : ' ';
       var c = celdas[i];
       if (!cfg.ANIMAR) {
-        c._t++; c._ch = ch; pintar(c, ch);
+        c._t++; c._ch = ch; reposar(c); pintar(c, ch);
       } else if (modoCambio === 'pagina') {
         if (c._ch === ' ' && ch === ' ') continue;
-        secuencia(c, [aleatorio(), aleatorio(), ch], i * ESCALONADO);
+        secuencia(c, letrasAlAzar(ch), i * ESCALONADO + Math.random() * DESFASE_AZAR);
       } else if (c._ch !== ch) {
         secuencia(c, [ch], 0);
       }

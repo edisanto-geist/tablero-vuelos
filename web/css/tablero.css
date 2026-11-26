@@ -78,9 +78,26 @@ body.reposo #tablero { display: none; }
   box-shadow: inset 0 0.02em 0 rgba(255,255,255,0.06), inset 0 -0.03em 0 rgba(0,0,0,0.6);
   -webkit-backface-visibility: hidden; backface-visibility: hidden;
 }
-.celda.flap { -webkit-animation: flap 180ms linear; animation: flap 180ms linear; }
-@-webkit-keyframes flap { 0% { -webkit-transform: rotateX(0); } 50% { -webkit-transform: rotateX(90deg); } 100% { -webkit-transform: rotateX(0); } }
-@keyframes flap { 0% { transform: rotateX(0); } 50% { transform: rotateX(90deg); } 100% { transform: rotateX(0); } }
+/* Paleta en dos mitades, como un Solari: cae la mitad de arriba de la letra vieja (45 ms, acelerando) y
+   después baja la mitad de abajo de la nueva (45 ms, frenando). Total = DURACION_FLAP de tablero.js. */
+.celda { -webkit-perspective: 3em; perspective: 3em; }
+.hoja {
+  display: none; position: absolute; left: 0; right: 0; height: 50%; overflow: hidden; z-index: 1;
+  background: inherit; background-size: 100% 200%;
+  -webkit-backface-visibility: hidden; backface-visibility: hidden;
+}
+.hoja-t { position: absolute; left: 0; right: 0; height: 200%; display: block; text-align: center; }
+.h-sup { top: 0; background-position: 0 0; -webkit-transform-origin: 50% 100%; transform-origin: 50% 100%; }
+.h-sup .hoja-t { top: 0; }
+.h-tapa, .h-inf { top: 50%; background-position: 0 100%; -webkit-transform-origin: 50% 0; transform-origin: 50% 0; }
+.h-tapa .hoja-t, .h-inf .hoja-t { top: -100%; }
+.celda.gira .hoja { display: block; }
+.celda.gira .h-sup { -webkit-animation: hoja-cae 45ms ease-in both; animation: hoja-cae 45ms ease-in both; }
+.celda.gira .h-inf { -webkit-animation: hoja-llega 45ms ease-out 45ms both; animation: hoja-llega 45ms ease-out 45ms both; }
+@-webkit-keyframes hoja-cae { from { -webkit-transform: rotateX(0); } to { -webkit-transform: rotateX(-90deg); } }
+@keyframes hoja-cae { from { transform: rotateX(0); } to { transform: rotateX(-90deg); } }
+@-webkit-keyframes hoja-llega { from { -webkit-transform: rotateX(90deg); } to { -webkit-transform: rotateX(0); } }
+@keyframes hoja-llega { from { transform: rotateX(90deg); } to { transform: rotateX(0); } }
 
 .c-vuelo, .c-direccion { color: #FFC81E; }
 .c-ruta { color: #F2F2F2; }
