@@ -47,7 +47,7 @@ body.reposo #tablero { display: none; }
 /* tamaños: fila normal (2 por página) */
 .l1 { font-size: 11vh; font-size: min(13vh, 7vw); }
 .l2 { font-size: 8.5vh; font-size: min(10vh, 5.6vw); margin-top: 0.8vh; }
-.l3 { font-size: 5vh; font-size: min(6vh, 3.3vw); margin-top: 1.2vh; color: #9A9A9A; }
+.l3 { font-size: 5vh; font-size: min(6vh, 3.3vw); margin-top: 1.2vh; color: #B8B8B8; }
 
 /* 3 filas por página: todo x 0,7 */
 #tablero.f3 .l1 { font-size: 7.7vh; font-size: min(9.1vh, 4.9vw); }
@@ -68,7 +68,7 @@ body.reposo #tablero { display: none; }
 .celda {
   display: inline-block; flex: none;
   width: 0.62em; height: 1.18em; line-height: 1.18em;
-  margin: 0 0.03em;
+  margin: 0 0.04em;
   text-align: center; overflow: hidden;
   border-radius: 0.08em;
   position: relative;
@@ -101,7 +101,7 @@ body.reposo #tablero { display: none; }
 
 .c-vuelo, .c-direccion { color: #FFC81E; }
 .c-ruta { color: #F2F2F2; }
-.l3 .celda { width: 0.62em; margin: 0 0.012em; background: #111; }
+.l3 .celda { width: 0.62em; margin: 0 0.03em; background: #111; }
 .sep { display: inline-block; width: 0.75em; flex: none; position: relative; height: 1em; }
 .sep:before { content: ""; position: absolute; left: 50%; top: 50%; width: 0.22em; height: 0.22em; margin: -0.11em 0 0 -0.11em; background: #666; border-radius: 50%; }
 .fila.vacia .celda { color: transparent; }
@@ -139,13 +139,12 @@ body.reposo #tablero { display: none; }
 /* corte al medio de la celda: pasa POR ENCIMA de la letra y la parte en dos, con las bisagras a los costados */
 .celda::before {
   content: ''; position: absolute; left: 0; right: 0; top: 50%; z-index: 2;
-  height: 0.06em; min-height: 2px; margin-top: -0.03em;
-  background: #000;
-  background: linear-gradient(to right, #3a3a3a 0, #3a3a3a 7%, #000 7%, #000 93%, #3a3a3a 93%, #3a3a3a 100%);
-  box-shadow: 0 0.02em 0.02em rgba(0,0,0,0.7);
+  height: 0.035em; min-height: 1px; margin-top: -0.018em;
+  background: rgba(0,0,0,0.85);
+  background: linear-gradient(to right, #2c2c2c 0, #2c2c2c 6%, rgba(0,0,0,0.85) 6%, rgba(0,0,0,0.85) 94%, #2c2c2c 94%, #2c2c2c 100%);
   pointer-events: none;
 }
-.l3 .celda::before { height: 0.035em; min-height: 1px; margin-top: -0.018em; } /* en la línea chica, corte fino para que se lea */
+.l3 .celda::before { height: 0.03em; min-height: 1px; margin-top: -0.015em; background: rgba(0,0,0,0.55); } /* en la línea chica, corte suave para que se lea */
 .l3 .celda { background: #111; background: linear-gradient(to bottom, #1c1c1c 0%, #161616 49%, #0f0f0f 51%, #0b0b0b 100%); }
 
 /* flecha de la ruta (ORIGEN→DESTINO) dibujada con bordes, igual en cualquier fuente */
@@ -161,6 +160,11 @@ body.reposo #tablero { display: none; }
 .fila .l3b { display: none; }
 .fila.vb .l3a { display: none; }
 .fila.vb .l3b { display: flex; }
-.c-salida, .c-eta { color: #9A9A9A; }
+.c-salida, .c-eta { color: #8A8A8A; }
 .c-salida.t-real, .c-salida.t-est, .c-eta.t-real, .c-eta.t-est { color: #F2F2F2; }
-.c-salida.t-prog, .c-salida.t-calc, .c-eta.t-prog, .c-eta.t-calc { color: #9A9A9A; }
+.c-salida.t-prog, .c-salida.t-calc, .c-eta.t-prog, .c-eta.t-calc { color: #8A8A8A; }
+
+/* Si el celu tiene activado "reducir movimiento", las letras cambian sin girar la paleta. */
+@media (prefers-reduced-motion: reduce) {
+  .celda.gira .hoja { display: none; }
+}
